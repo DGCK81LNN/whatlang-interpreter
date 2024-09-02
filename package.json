@@ -1,0 +1,32 @@
+{
+  "name": "whatlang-interpreter",
+  "version": "0.1.0",
+  "description": "Improved interpreter for Whatlang, some random esolang",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DGCK81LNN/whatlang.git"
+  },
+  "keywords": [
+    "esolang"
+  ],
+  "author": "DGCK81LNN",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/DGCK81LNN/whatlang/issues"
+  },
+  "homepage": "https://github.com/DGCK81LNN/whatlang#readme",
+  "packageManager": "yarn@4.4.1",
+  "devDependencies": {
+    "@eslint/js": "^9.9.1",
+    "@types/eslint__js": "^8.42.3",
+    "@types/node": "^22.5.2",
+    "esbuild": "^0.23.1",
+    "eslint": "^9.9.1",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.3.0"
+  }
+}
