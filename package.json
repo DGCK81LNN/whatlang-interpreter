@@ -1,0 +1,33 @@
+{
+  "name": "whatlang-interpreter",
+  "version": "0.1.0",
+  "description": "Interpreter for Whatlang, a stack-based esolang",
+  "main": "lib/index.js",
+  "bin": {
+    "wl": "lib/cli.js"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DGCK81LNN/whatlang-interpreter.git"
+  },
+  "keywords": [
+    "esolang"
+  ],
+  "author": "DGCK81LNN",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/DGCK81LNN/whatlang-interpreter/issues"
+  },
+  "homepage": "https://github.com/DGCK81LNN/whatlang-interpreter#readme",
+  "packageManager": "yarn@4.9.1",
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  }
+}
