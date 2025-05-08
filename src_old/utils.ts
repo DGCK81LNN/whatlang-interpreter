@@ -1,6 +1,4 @@
-import { Interpreter } from "."
 import {
-  Dict,
   WhatError,
   WhatType,
   WhatTypeMap,
@@ -20,33 +18,25 @@ export function typeOf(value: unknown) {
 
 type WhatTypeWithChecker = Exclude<keyof WhatTypeMap, WhatType>
 const typeCheckers = {
-  Any() {
+  Any(value) {
     // no-op
   },
 } as {
-  [K in WhatTypeWithChecker]: (
-    interpreter: Interpreter,
-    value: WhatValue
-  ) => [string, string] | undefined
+  [K in WhatTypeWithChecker]: (value: WhatValue) => [string, string] | undefined
 }
 
 function checkType(
-  interpreter: Interpreter,
   value: WhatValue,
   expectType: keyof WhatTypeMap
 ): [expectDesc: string, actualDesc: string] | undefined {
   if (expectType in typeCheckers)
-    return typeCheckers[expectType as WhatTypeWithChecker](interpreter, value)
+    return typeCheckers[expectType as WhatTypeWithChecker](value)
   const actualType = typeOf(value)
   if (expectType !== actualType)
-    return [
-      `of type ${expectType}`,
-      formatting(value, interpreter.options.formatting),
-    ]
+    return [`of type ${expectType}`, formatting(value)]
 }
 
 export function popArgs<T extends (keyof WhatTypeMap)[]>(
-  interpreter: Interpreter,
   funcName: string,
   stack: WhatValue[],
   ...argTypes: T
@@ -57,7 +47,7 @@ export function popArgs<T extends (keyof WhatTypeMap)[]>(
     )
   const values = stack.slice(-argTypes.length) // not mutating stack before checking types
   for (let i = 0; i < argTypes.length; i++) {
-    const report = checkType(interpreter, values[i], argTypes[i])
+    const report = checkType(values[i], argTypes[i])
     if (report)
       throw new WhatError(
         `${funcName} expected argument ${i} to be ${report[0]}, got ${report[1]}`
@@ -72,86 +62,22 @@ export function toBoolean(value: WhatValue): boolean {
   return !!value
 }
 
-const escapeCharMap: Dict<string> = {
-  b: "\b",
-  f: "\f",
-  n: "\n",
-  r: "\r",
-  t: "\t",
-}
-
-export interface FormattingOptions {
-  depth?: number
-  maxArrayLength?: number
-  maxStringLength?: number
-  _seen?: WhatValue[]
-}
-
-export function formatting(
-  value: WhatValue,
-  options: FormattingOptions = {}
-): string {
+export function formatting(value: WhatValue): string {
   if (value === Infinity) return "Inf"
   if (value === -Infinity) return "-Inf"
   if (value === undefined) return "undef"
-
   if (typeof value === "string") {
-    const { maxStringLength = 4000 } = options
-    let maxLen = maxStringLength
-    if (maxLen < value.length && value.codePointAt(maxLen - 1)! > 0xffff)
-      maxLen--
-    const truncated = value.slice(0, maxLen)
-    const lines =
-      truncated.length > 50
-        ? truncated.match(/[^\n\r\f]*(?:\r?\n|\r|\f)?/g)!.filter(Boolean)
-        : [truncated]
-    const escapedLines = lines.map(line => {
-      line = line.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
-      for (const [key, val] of Object.entries(escapeCharMap))
-        line = line.replaceAll(val, "\\" + key)
-      return line
-    })
-    let quoted = '"' + escapedLines.join('"\n  "') + '"'
-    if (value.length > maxLen) {
-      const restCount = value.length - maxLen
-      quoted += `... ${restCount} more char${restCount > 1 ? "s" : ""}`
-    }
-    return quoted
-  }
 
+  }
   if (Array.isArray(value)) {
-    const { depth = 4, maxArrayLength = 100, _seen = [] } = options
-    if (_seen.includes(value)) return "[...circular]"
-    if (depth < 0) return "[...]"
-    const contents = value.slice(0, maxArrayLength).map(item =>
-      formatting(item, {
-        ...options,
-        depth: depth - 1,
-        _seen: [..._seen, value],
-      })
-    )
-    if (value.length > maxArrayLength) {
-      const restCount = value.length - maxArrayLength
-      contents.push(`... ${restCount} more item${restCount > 1 ? "s" : ""}`)
-    }
-    if (contents.some(c => c.includes("\n")))
-      return (
-        "[\n  " +
-        contents.map(c => c.replaceAll("\n", "\n  ")).join(",\n  ") +
-        "\n]"
-      )
-    return "[" + contents.join(", ") + "]"
-  }
 
+  }
   return String(value)
 }
 
-export function toString(
-  value: WhatValue,
-  options?: FormattingOptions
-): string {
+export function toString(value: WhatValue): string {
   if (typeof value === "string") return value
-  return formatting(value, options)
+  return formatting(value)
 }
 
 export function add(a: WhatValue, b: WhatValue) {

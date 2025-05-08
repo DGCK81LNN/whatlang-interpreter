@@ -28,34 +28,6 @@ export default tseslint.config({
     "require-atomic-updates": "error",
     "symbol-description": "warn",
     "yoda": ["warn", "never"],
-    "@typescript-eslint/consistent-type-assertions": [
-      "error",
-      {
-        assertionStyle: "as",
-        objectLiteralTypeAssertions: "allow-as-parameter",
-      },
-    ],
-    "@typescript-eslint/naming-convention": [
-      "warn",
-      {
-        selector: "default",
-        format: ["camelCase", "UPPER_CASE"],
-        leadingUnderscore: "allow",
-        trailingUnderscore: "allow",
-      },
-      {
-        selector: ["import", "typeMethod", "typeProperty"],
-        format: ["camelCase", "PascalCase", "UPPER_CASE"],
-      },
-      {
-        selector: "typeLike",
-        format: ["PascalCase"],
-      },
-      {
-        selector: ["objectLiteralMethod", "objectLiteralProperty"],
-        format: null,
-      },
-    ],
     "@typescript-eslint/no-unnecessary-boolean-literal-compare": "error",
     "@typescript-eslint/no-unnecessary-template-expression": "warn",
     "@typescript-eslint/no-unnecessary-type-arguments": "warn",

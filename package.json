@@ -1,11 +1,9 @@
 {
   "name": "whatlang-interpreter",
-  "version": "0.1.0",
-  "description": "Improved interpreter for Whatlang, some random esolang",
+  "version": "0.2.0",
+  "description": "Improved interpreter for Whatlang, an esolang",
   "main": "lib/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DGCK81LNN/whatlang.git"

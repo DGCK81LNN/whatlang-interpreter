@@ -26,6 +26,7 @@ export class WhatError extends Error {
   // whatTrace: WhatTraceFrame[] = []
 }
 
-export interface WhatFrame {
-  name: string
-}
+// export interface WhatFrame {
+//   name: string
+//   fstack: WhatValue[][]
+// }
