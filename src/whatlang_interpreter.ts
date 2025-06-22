@@ -43,12 +43,12 @@ export var default_var_dict : Record<string, any> = ({
         v : Record<string, any>,
         o : (x : any) => void,
     ) => {
-      const arr = [];
-      for (const i of s.at(-1).at(-1)) {
-        const result = await exec_what([s.at(-1).concat([i, x])], v, o);
-        if (result || Number.isNaN(result)) arr.push(i);
-      }
-      return arr
+        const arr = [];
+        for (const i of s.at(-1).at(-1)) {
+            const result = await exec_what([s.at(-1).concat([i, x])], v, o);
+            if (result || Number.isNaN(result)) arr.push(i);
+        }
+        return arr
     },
     chr: (x : any) => Array.isArray(x) ? String.fromCodePoint(...x) : String.fromCodePoint(x),
     ord: (x : any) => [...typeof x == "string" ? x : formatting(x)].map(i => i.codePointAt(0)),
@@ -147,8 +147,8 @@ const repr_formatting : (x : any) => string = (x : any) => {
         return "(-0)num@"
     } else if (typeof x == "number") {
         if (
-           x < 0 || x >= 1.0e+21 ||
-           !Number.isInteger(x)
+            x < 0 || x >= 1.0e+21 ||
+            !Number.isInteger(x)
         ) return "(" + String(x) + ")num@"
         return String(x)
     }
@@ -355,8 +355,8 @@ export const eval_what = async (
             temp = stack.pop()
             const arr = []
             for (const x of stack.at(-1)) {
-              const result = await exec_what([stack.concat([x, temp])], var_dict, output, { dead_loop_check })
-              arr.push(result)
+                const result = await exec_what([stack.concat([x, temp])], var_dict, output, { dead_loop_check })
+                arr.push(result)
             }
             stack.push(arr)
         } else if ("," === c) {
