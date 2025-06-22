@@ -11,10 +11,7 @@ const relize = (x : string) => Array.isArray(x) ? new RegExp(x[0], x[1]) : x
 
 export var default_var_dict : Record<string, any> = ({
     num: (x : any) => Number(x),
-    str: (x : any) => (
-      Array.isArray(x) && x.every(i => typeof i == "string" && i.length == 1)
-      ? x.join("") : formatting(x)
-    ),
+    str: (x : any) => typeof x === "string" ? x : formatting(x),
     repr: (x : any) => repr_formatting(x),
     arr: (x : any) => [...x],
     pow: (x : any, y : any) => x ** y,
@@ -32,7 +29,7 @@ export var default_var_dict : Record<string, any> = ({
     randint: (x : any, y : any) => Math.floor((Math.random() * (x - y)) + y),
     flr: (x : any) => Math.floor(x),
     range: (x : any) => [...Array(x).keys()],
-    len: (s : any[][]) => [...s.at(-1).at(-1)].length,
+    len: (s : any[][]) => s.at(-1).at(-1).length ?? null,
     split: (x : any, y : any) => (typeof x == "string" ? x : formatting(x)).split(y),
     join: (x : any, s : any[][]) => ([...s.at(-1).at(-1)]
         .map(i => typeof i == "string" ? i : formatting(i))
@@ -45,9 +42,14 @@ export var default_var_dict : Record<string, any> = ({
         s : any[][],
         v : Record<string, any>,
         o : (x : any) => void,
-    ) => (await [...s.at(-1).at(-1)].reduce(async (memo : any, i : any) => (
-        [...await memo, [i, await exec_what([...s.slice(0, -1), s.at(-1).concat([i, x])], v, o)]]
-    ), [])).filter(i => i[1] || Number.isNaN(i[1])).map(i => i[0]),
+    ) => {
+      const arr = [];
+      for (const i of s.at(-1).at(-1)) {
+        const result = await exec_what([s.at(-1).concat([i, x])], v, o);
+        if (result || Number.isNaN(result)) arr.push(i);
+      }
+      return arr
+    },
     chr: (x : any) => Array.isArray(x) ? String.fromCodePoint(...x) : String.fromCodePoint(x),
     ord: (x : any) => [...typeof x == "string" ? x : formatting(x)].map(i => i.codePointAt(0)),
     and: (x : any, y : any) => Number.isNaN(x) ? y : x && y,
@@ -91,6 +93,9 @@ export const formatting : (x : any) => string = (x : any) => {
             .replace(/"/g, '\\"')
             .replace(/\n/g, '\\n')
             .replace(/\t/g, '\\t')
+            .replace(/\r/g, '\\r')
+            .replace(/\f/g, '\\f')
+            .replace(/\v/g, '\\v')
         ) + '"'
     } else if (x == undefined) {
         return "undef"
@@ -120,12 +125,15 @@ const repr_formatting : (x : any) => string = (x : any) => {
             i => Array.isArray(i) && i == x ? "stack@" : repr_formatting(i)
         ).join(" ") + "]"
     } else if (typeof x == "string") {
-        if (/^[a-zA-Z][a-zA-Z0-9_]*$/.test(x)) return x
+        if (/^[a-z][a-z0-9_]*$/.test(x)) return x
         else if (is_valid_paren_string(x)) return "(" + x + ")"
         else return '"' + (x
-            .replace('"', '\\"')
-            .replace('\n', '\\n')
-            .replace('\t', '\\t')
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\t/g, '\\t')
+            .replace(/\r/g, '\\r')
+            .replace(/\f/g, '\\f')
+            .replace(/\v/g, '\\v')
         ) + '"'
     } else if (x === undefined) {
         return "undef@"
@@ -168,7 +176,8 @@ export const exec_what = async (
         temp2.splice(temp3)
         temp2 = (temp.length > temp3 ? stack.splice(temp3 - temp.length) : []).concat(temp2)
         temp = await temp(...new Array(temp.length - temp2.length), ...temp2)
-        if (temp != undefined) stack.push(temp)
+        if (temp === null) stack.push(undefined)
+        else if (temp != undefined) stack.push(temp)
     } else {
         temp2 = temp in var_dict ? var_dict[temp] : temp
         await eval_what(temp2, fstack, var_dict, output, { dead_loop_check })
@@ -237,6 +246,9 @@ export const eval_what = async (
                     temp += ({
                         "n": "\n",
                         "t": "\t",
+                        "r": "\r",
+                        "f": "\f",
+                        "v": "\v",
                         [temp2]: temp2
                     })[c] ?? c
                 } else if (temp2 === c) break
@@ -341,9 +353,12 @@ export const eval_what = async (
             }
         } else if ("#" === c) {
             temp = stack.pop()
-            stack.push(await stack.at(-1).reduce(async (memo : any, x : any) => (
-                [...await memo, await exec_what([stack.concat([x, temp])], var_dict, output, { dead_loop_check })]
-            ), []))
+            const arr = []
+            for (const x of stack.at(-1)) {
+              const result = await exec_what([stack.concat([x, temp])], var_dict, output, { dead_loop_check })
+              arr.push(result)
+            }
+            stack.push(arr)
         } else if ("," === c) {
             temp = stack.pop()
             stack.push(stack.at(-1).slice(temp)[0])
