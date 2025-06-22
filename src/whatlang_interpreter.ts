@@ -1,5 +1,10 @@
 const op : Record<string, (x : any, y : any) => any> = {
-    "+": (x, y) => (x + y),
+    "+": (x, y) => (
+        Array.isArray(x) || Array.isArray(y) ? [].concat(x, y)
+        : typeof x === "string" && typeof y !== "string" ? x + formatting(y)
+        : typeof x !== "string" && typeof y === "string" ? formatting(x) + y
+        : x + y
+    ),
     "-": (x, y) => (x - y),
     "*": (x, y) => (x * y),
     "/": (x, y) => (x / y),
