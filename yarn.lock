@@ -56,6 +56,6 @@ __metadata:
     commander: "npm:^13.1.0"
     typescript: "npm:^5.8.3"
   bin:
-    wl: lib/cli.js
+    what: lib/cli.js
   languageName: unknown
   linkType: soft

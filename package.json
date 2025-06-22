@@ -1,10 +1,10 @@
 {
   "name": "whatlang-interpreter",
-  "version": "0.1.0",
-  "description": "Interpreter for Whatlang, a stack-based esolang",
+  "version": "0.2.0",
+  "description": "Interpreter for WhatLang 2024, a stack-based esolang",
   "main": "lib/index.js",
   "bin": {
-    "wl": "lib/cli.js"
+    "what": "lib/cli.js"
   },
   "files": [
     "lib"
@@ -23,6 +23,9 @@
   },
   "homepage": "https://github.com/DGCK81LNN/whatlang-interpreter#readme",
   "packageManager": "yarn@4.9.1",
+  "scripts": {
+    "build": "tsc"
+  },
   "devDependencies": {
     "@types/node": "^22.14.1",
     "typescript": "^5.8.3"
