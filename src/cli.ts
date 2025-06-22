@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-/** @format */
 /// <reference types="node" />
 import { Command } from "commander"
 import fs from "fs"
