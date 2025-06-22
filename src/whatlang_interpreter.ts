@@ -30,7 +30,7 @@ export var default_var_dict : Record<string, any> = ({
     flr: (x : any) => Math.floor(x),
     range: (x : any) => [...Array(x).keys()],
     len: (s : any[][]) => s.at(-1).at(-1).length ?? null,
-    split: (x : any, y : any) => (typeof x == "string" ? x : formatting(x)).split(y),
+    split: (x : any, y : any) => (typeof x == "string" ? x : formatting(x)).split(relize(y)),
     join: (x : any, s : any[][]) => ([...s.at(-1).at(-1)]
         .map(i => typeof i == "string" ? i : formatting(i))
         .join(x)
