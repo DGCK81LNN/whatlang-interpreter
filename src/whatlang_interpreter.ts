@@ -75,6 +75,7 @@ export var default_var_dict : Record<string, any> = ({
         try {
             await exec_what(s, v, o)
         } catch (e) {
+            if (e?.[Symbol.for("whatlang.uncatchable_exception")]) throw e
             temp = [e.name, e.message]
         }
         return temp
@@ -164,7 +165,6 @@ export const exec_what = async (
     fstack : any[][],
     var_dict : Record<string, any>,
     output : (x : any) => void,
-    { dead_loop_check = () => {} } = {}
 ) => {
     var stack : any[] = fstack.at(-1)
     let temp : any, temp2 : any, temp3 : any
@@ -185,21 +185,19 @@ export const exec_what = async (
         else if (temp != undefined) stack.push(temp)
     } else {
         temp2 = temp in var_dict ? var_dict[temp] : temp
-        await eval_what(temp2, fstack, var_dict, output, { dead_loop_check })
+        await eval_what(temp2, fstack, var_dict, output)
     }
     return stack.at(-1)
 }
 export const run_what = async (
     code : string,
     var_dict : Record<string, any> = default_var_dict,
-    { dead_loop_check = () => {} } = {}
 ) => {
     let output : string = ""
     let stack : any = await eval_what(
         code, [[]],
         Object.assign({}, var_dict),
         (x : any) => {output += x},
-        { dead_loop_check }
     )
     return ({
         stack: stack,
@@ -211,13 +209,17 @@ export const eval_what = async (
     code : string, fstack : any[][],
     var_dict : Record<string, any>,
     output : (x : any) => void = (x : any) => console.log(x),
-    { dead_loop_check = () => {} } = {}
 ) => {
+    let dead_loop_check = (var_dict as any)[Symbol.for("whatlang.dead_loop_check")] ?? (() => {})
     var stack : any[] = fstack.at(-1)
     let i : number = -1, c : string
     let temp : any, temp2 : any
     while (++i < code.length) {
-        dead_loop_check()
+        if (dead_loop_check())
+            throw Object.assign(
+                new Error("Execution timeout"),
+                { [Symbol.for("whatlang.uncatchable_exception")]: true },
+            )
         c = code[i]
         if (/\s/.test(c)) {
             continue
@@ -322,7 +324,7 @@ export const eval_what = async (
             temp2 = var_dict[temp]
             stack.push(typeof temp2 == "function" ? temp + "@" : temp2)
         } else if ('@' === c) {
-            await exec_what(fstack, var_dict, output, { dead_loop_check })
+            await exec_what(fstack, var_dict, output)
             stack = fstack.at(-1)
         } else if ('>' === c) {
             stack.push(stack.splice(-stack.pop()))
@@ -361,7 +363,7 @@ export const eval_what = async (
             temp = stack.pop()
             const arr = []
             for (const x of stack.at(-1)) {
-                const result = await exec_what([stack.concat([x, temp])], var_dict, output, { dead_loop_check })
+                const result = await exec_what([stack.concat([x, temp])], var_dict, output)
                 arr.push(result)
             }
             stack.push(arr)
