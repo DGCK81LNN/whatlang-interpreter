@@ -240,7 +240,8 @@ export const eval_what = async (
             c = code[--i]
             stack.push(temp.toLowerCase())
         } else if ("'" === c) {
-            stack.push(c = code[++i])
+            if (code.codePointAt(++i) > 0xffff) stack.push(code.slice(i, ++i + 1))
+            else stack.push(code[i])
         } else if (/["`]/.test(c)) {
             temp = ""
             temp2 = c
