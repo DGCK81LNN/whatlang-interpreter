@@ -72,11 +72,18 @@ export var default_var_dict : Record<string, any> = ({
         o : (x : any) => void,
     ) => {
         let temp : string[] = [undefined, undefined]
+        let stack = s.at(-1)
+        let temp2 = [stack]
         try {
-            await exec_what(s, v, o)
+            await exec_what(temp2, v, o)
         } catch (e) {
             if (e?.[Symbol.for("whatlang.uncatchable_exception")]) throw e
             temp = [e.name, e.message]
+            if (temp2.includes(stack)) {
+                while (temp2.at(-1) !== stack) {
+                    temp2.at(-2).push(temp2.pop())
+                }
+            }
         }
         return temp
     },
