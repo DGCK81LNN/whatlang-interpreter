@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /// <reference types="node" />
 import { Command } from "commander"
 import fs from "fs"
@@ -6,9 +7,8 @@ import { eval_what, default_var_dict } from "./whatlang_interpreter"
 const program = new Command()
 
 program
-  .name("wl")
+  .name("what")
   .description("WhatLang, a stack-based programming language")
-  .version("0.1.0")
   .argument("[file]", "file to execute")
   .option("-e, --execute <code>", "execute code directly")
   .action((file: string, options: { execute?: string }) => {
