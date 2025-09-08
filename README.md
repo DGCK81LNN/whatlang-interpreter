@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/whatlang-interpreter.svg)](https://www.npmjs.com/package/whatlang-interpreter)
 
-Fork of the original interpreter for [WhatLang](https://esolangs.org/wiki/WhatLang) (2024), as a standalone package
+Fork of the core part of the [original](https://github.com/YufangProbably/koishi-plugins/tree/main/plugins/whatlang) interpreter for [WhatLang](https://esolangs.org/wiki/WhatLang) (2024), as a standalone package
 
 ## Usage
 
