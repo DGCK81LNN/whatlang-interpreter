@@ -96,30 +96,60 @@ export var default_var_dict : Record<string, any> = ({
 export var need_svo : string[] = "filter try".split(" ")
 export var need_fstack : string[] = "len join reverse in stak stack undef".split(" ")
 
-export const formatting : (x : any) => string = (x : any) => {
-    if (Array.isArray(x)) {
-        return "[" + x.map(
-            i => Array.isArray(i) && i == x ? "[...]" : formatting(i)
-        ).join(", ") + "]"
-    } else if (typeof x == "string") {
-        return '"' + (x
-            .replace(/"/g, '\\"')
-            .replace(/\n/g, '\\n')
-            .replace(/\t/g, '\\t')
-            .replace(/\r/g, '\\r')
-            .replace(/\f/g, '\\f')
-            .replace(/\v/g, '\\v')
-        ) + '"'
-    } else if (x == undefined) {
-        return "undef"
-    } else if (Number.isNaN(x)) {
-        return "NaN"
-    } else if (x == Infinity) {
-        return "Inf"
-    } else if (x == -Infinity) {
-        return "-Inf"
+const escapeCharMap = { b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" }
+export function formatting(value: any, options: any = {}) {
+  if (value === Infinity) return "Inf"
+  if (value === -Infinity) return "-Inf"
+  if (value === undefined) return "undef"
+
+  if (typeof value === "string") {
+    const { maxStringLength = 4000 } = options
+    let maxLen = maxStringLength
+    if (maxLen < value.length && value.codePointAt(maxLen - 1) > 0xffff) maxLen--
+    const truncated = value.slice(0, maxLen)
+    const lines =
+      truncated.length > 50
+        ? truncated.match(/[^\n\r\f]*(?:\r?\n|\r|\f)?/g).filter(Boolean)
+        : [truncated]
+    const escapedLines = lines.map(line => {
+      line = line.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+      for (const [key, val] of Object.entries(escapeCharMap))
+        line = line.replaceAll(val, "\\" + key)
+      return line
+    })
+    let quoted = '"' + escapedLines.join('"\n  "') + '"'
+    if (value.length > maxLen) {
+      const restCount = value.length - maxLen
+      quoted += `... ${restCount} more char${restCount > 1 ? "s" : ""}`
     }
-    return String(x)
+    return quoted
+  }
+
+  if (Array.isArray(value)) {
+    const { depth = 4, maxArrayLength = 100, _seen = [] } = options
+    if (_seen.includes(value)) return "[...circular]"
+    if (depth < 0) return "[...]"
+    const contents = value.slice(0, maxArrayLength).map(item =>
+      formatting(item, {
+        ...options,
+        depth: depth - 1,
+        _seen: [..._seen, value],
+      })
+    )
+    if (value.length > maxArrayLength) {
+      const restCount = value.length - maxArrayLength
+      contents.push(`... ${restCount} more item${restCount > 1 ? "s" : ""}`)
+    }
+    if (contents.some(c => c.includes("\n")))
+      return (
+        "[\n  " +
+        contents.map(c => c.replaceAll("\n", "\n  ")).join(",\n  ") +
+        "\n]"
+      )
+    return "[" + contents.join(", ") + "]"
+  }
+
+  return String(value)
 }
 
 const is_valid_paren_string = (x : string) : boolean => {
