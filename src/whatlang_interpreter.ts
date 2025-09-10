@@ -141,6 +141,7 @@ const repr_formatting : (x : any) => string = (x : any) => {
         if (/^[a-z][a-z0-9_]*$/.test(x)) return x
         else if (is_valid_paren_string(x)) return "(" + x + ")"
         else return '"' + (x
+            .replace(/\\/g, '\\\\')
             .replace(/"/g, '\\"')
             .replace(/\n/g, '\\n')
             .replace(/\t/g, '\\t')
