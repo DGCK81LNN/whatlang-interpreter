@@ -3,11 +3,11 @@
   "compilerOptions": {
     "declaration": true,
     "outDir": "./lib",
-    "lib": ["es2022"],
-    "types": ["node"],
+    "lib": ["es2022", "dom"],
     "target": "es2022",
     "module": "nodenext",
     "moduleResolution": "nodenext",
+    "importHelpers": true,
     "listEmittedFiles": true
   }
 }

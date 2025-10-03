@@ -1,3 +1,5 @@
+import { fromBase64, toBase64 } from "@jsonjoy.com/base64"
+
 const op : Record<string, (x : any, y : any) => any> = {
     "+": (x, y) => (
         Array.isArray(x) || Array.isArray(y) ? [].concat(x, y)
@@ -13,6 +15,11 @@ const op : Record<string, (x : any, y : any) => any> = {
 }
 
 const relize = (x : string) => Array.isArray(x) ? new RegExp(x[0], x[1]) : x
+
+const safeFromBase64 = (x: string) => {
+    x = x.replace(/[^A-Za-z0-9+/]+/g, "")
+    return fromBase64(x.padEnd(Math.ceil(x.length / 4) * 4, "="))
+}
 
 export var default_var_dict : Record<string, any> = ({
     num: (x : any) => Number(x),
@@ -92,6 +99,10 @@ export var default_var_dict : Record<string, any> = ({
     repl: (x : any, y : any, z : any) => x.replace(relize(y), z),
     time: () => Date.now(),
     type: (x : any) => x == undefined ? "Undefined" : x.constructor.name,
+    b64: (x: any) => toBase64(x),
+    nb64: (x: any) => [...safeFromBase64(typeof x == "string" ? x : formatting(x))],
+    utf8: (x: any) => [...new TextEncoder().encode(typeof x == "string" ? x : formatting(x))],
+    nutf8: (x: any) => new TextDecoder().decode(new Uint8Array(x)),
 })
 export var need_svo : string[] = "filter try".split(" ")
 export var need_fstack : string[] = "len join reverse in stak stack undef".split(" ")
