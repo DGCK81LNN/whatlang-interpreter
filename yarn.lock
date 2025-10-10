@@ -5,15 +5,6 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@jsonjoy.com/base64@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "@jsonjoy.com/base64@npm:1.1.2"
-  peerDependencies:
-    tslib: 2
-  checksum: 10c0/88717945f66dc89bf58ce75624c99fe6a5c9a0c8614e26d03e406447b28abff80c69fb37dabe5aafef1862cf315071ae66e5c85f6018b437d95f8d13d235e6eb
-  languageName: node
-  linkType: hard
-
 "@types/node@npm:^22.14.1":
   version: 22.14.1
   resolution: "@types/node@npm:22.14.1"
@@ -30,10 +21,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.8.1":
-  version: 2.8.1
-  resolution: "tslib@npm:2.8.1"
-  checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
+"cosmokit@npm:^1.8.0":
+  version: 1.8.0
+  resolution: "cosmokit@npm:1.8.0"
+  checksum: 10c0/15d01b7fc44b189d94f598abf79f13ae54346e36b3fc8af495b95b1a2ecd074e900cafe3701d7d39b34c55a0e26cd625e46e2c6816324f218fbaa665e34227b9
   languageName: node
   linkType: hard
 
@@ -68,10 +59,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "whatlang-interpreter@workspace:."
   dependencies:
-    "@jsonjoy.com/base64": "npm:^1.1.2"
     "@types/node": "npm:^22.14.1"
     commander: "npm:^13.1.0"
-    tslib: "npm:^2.8.1"
+    cosmokit: "npm:^1.8.0"
     typescript: "npm:^5.8.3"
   bin:
     what: lib/cli.js
