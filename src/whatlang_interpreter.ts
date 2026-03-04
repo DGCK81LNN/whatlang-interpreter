@@ -32,6 +32,17 @@ const safeFromBase64 = (x: string) => {
     return new Uint8Array(Binary.fromBase64(x.padEnd(Math.ceil(x.length / 4) * 4, "=")))
 }
 
+function error<T>(f: () => T, g: () => Error) {
+    try {
+        return f()
+    } catch {
+        throw g()
+    }
+}
+function FE(segs: readonly string[], ...values: any[]) {
+    return String.raw({ raw: segs }, ...values.map(x => formatting(x, { maxArrayLength: 4, maxStringLength: 50 })))
+}
+
 export var default_var_dict : Record<string, any> = ({
     num: (x : any) => Number(x),
     str: (x : any) => typeof x === "string" ? x : formatting(x),
@@ -52,14 +63,23 @@ export var default_var_dict : Record<string, any> = ({
     randint: (x : any, y : any) => Math.floor((Math.random() * (x - y)) + y),
     flr: (x : any) => Math.floor(x),
     range: (x : any) => [...Array(x).keys()],
-    len: (s : any[][]) => s.at(-1).at(-1).length ?? null,
-    split: (x : any, y : any) => (typeof x == "string" ? x : formatting(x)).split(relize(y)),
-    join: (x : any, s : any[][]) => ([...s.at(-1).at(-1)]
-        .map(i => typeof i == "string" ? i : formatting(i))
-        .join(x)
+    len: (s : any[][]) => error(
+        () => s.at(-1).at(-1).length ?? null,
+        () => TypeError(FE`Cannot get length of ${s.at(-1).at(-1)}, expected Array or String`)
     ),
-    reverse: (s : any[][]) => [...s.at(-1).at(-1)].reverse(),
-    in: (x : any, s : any[][]) => [...s.at(-1).at(-1)].indexOf(x),
+    split: (x : any, y : any) => (typeof x == "string" ? x : formatting(x)).split(relize(y)),
+    join: (x : any, s : any[][]) => error(
+        () => Array.from(s.at(-1).at(-1), i => typeof i == "string" ? i : formatting(i)).join(x),
+        () => TypeError(FE`Cannot join ${s.at(-1).at(-1)}, expected Array or String`)
+    ),
+    reverse: (s : any[][]) => error(
+        () => [...s.at(-1).at(-1)].reverse(),
+        () => TypeError(FE`Cannot reverse ${s.at(-1).at(-1)}, expected Array or String`)
+    ),
+    in: (x : any, s : any[][]) => error(
+        () => s.at(-1).at(-1).indexOf(x),
+        () => TypeError(FE`Cannot find index of item in ${s.at(-1).at(-1)}, expected Array or String`)
+    ),
     filter: async (
         x : any,
         s : any[][],
@@ -67,18 +87,18 @@ export var default_var_dict : Record<string, any> = ({
         o : (x : any) => void,
     ) => {
         const arr = [];
-        for (const i of s.at(-1).at(-1)) {
+        for (const i of error(() => s.at(-1).at(-1), () => TypeError(FE`Cannot fliter ${s.at(-1).at(-1)}, expected Array or String`))) {
             const result = await exec_what([s.at(-1).concat([i, x])], v, o);
             if (result || Number.isNaN(result)) arr.push(i);
         }
         return arr
     },
     chr: (x : any) => Array.isArray(x) ? String.fromCodePoint(...x) : String.fromCodePoint(x),
-    ord: (x : any) => [...typeof x == "string" ? x : formatting(x)].map(i => i.codePointAt(0)),
-    and: (x : any, y : any) => Number.isNaN(x) ? y : x && y,
-    or: (x : any, y : any) => Number.isNaN(x) ? x : x || y,
+    ord: (x : any) => Array.from(typeof x == "string" ? x : formatting(x), i => i.codePointAt(0)),
+    and: (x : any, y : any) => x || Number.isNaN(x) ? y : x,
+    or: (x : any, y : any) => x || Number.isNaN(x) ? x : y,
     nan: () => NaN,
-    undef: (s : any[][]) => void s.at(-1).push(undefined),
+    undef: () => null,
     inf: () => Infinity,
     ninf: () => -Infinity,
     eq: (x : any, y : any) => +(x === y),
@@ -110,38 +130,82 @@ export var default_var_dict : Record<string, any> = ({
     repl: (x : any, y : any, z : any) => x.replace(relize(y), z),
     time: () => Date.now(),
     type: (x : any) => x == undefined ? "Undefined" : x.constructor.name,
-    b64: (x: any) => Binary.toBase64(new Uint8Array(x).buffer),
+    b64: (x: any) => {
+        if (!Array.isArray(x)) throw TypeError(FE`Cannot convert ${x} to Base64, expected Array`)
+        return Binary.toBase64(new Uint8Array(x).buffer)
+    },
     nb64: (x: any) => [...safeFromBase64(typeof x == "string" ? x : formatting(x))],
     utf8: (x: any) => [...new TextEncoder().encode(typeof x == "string" ? x : formatting(x))],
-    nutf8: (x: any) => new TextDecoder().decode(new Uint8Array(x)),
+    nutf8: (x: any) => {
+        if (!Array.isArray(x)) throw TypeError(FE`Cannot decode ${x} as UTF-8, expected Array`)
+        return new TextDecoder().decode(new Uint8Array(x))
+    },
 })
 export var need_svo : string[] = "filter try".split(" ")
-export var need_fstack : string[] = "len join reverse in stak stack undef".split(" ")
+export var need_fstack : string[] = "len join reverse in stak stack".split(" ")
 
-export const formatting : (x : any) => string = (x : any) => {
-    if (Array.isArray(x)) {
-        return "[" + x.map(
-            i => Array.isArray(i) && i == x ? "[...]" : formatting(i)
-        ).join(", ") + "]"
-    } else if (typeof x == "string") {
-        return '"' + (x
-            .replace(/"/g, '\\"')
-            .replace(/\n/g, '\\n')
-            .replace(/\t/g, '\\t')
-            .replace(/\r/g, '\\r')
-            .replace(/\f/g, '\\f')
-            .replace(/\v/g, '\\v')
-        ) + '"'
-    } else if (x == undefined) {
-        return "undef"
-    } else if (Number.isNaN(x)) {
-        return "NaN"
-    } else if (x == Infinity) {
-        return "Inf"
-    } else if (x == -Infinity) {
-        return "-Inf"
+const escapeCharMap = { b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" }
+export function formatting(
+    value: any,
+    options: {
+        depth?: number,
+        maxArrayLength?: number,
+        maxStringLength?: number,
+        _seen?: any[],
+    } = {},
+): string {
+    if (value === Infinity) return "Inf"
+    if (value === -Infinity) return "-Inf"
+    if (value === undefined) return "undef"
+
+    if (typeof value === "string") {
+        const { maxStringLength = 4000 } = options
+        let maxLen = maxStringLength
+        if (maxLen < value.length && value.codePointAt(maxLen - 1) > 0xffff) maxLen--
+        const truncated = value.slice(0, maxLen)
+        const lines =
+            truncated.length > 50
+                ? truncated.match(/[^\n\r\f]*(?:\r?\n|\r|\f)?/g).filter(Boolean)
+                : [truncated]
+        const escapedLines = lines.map(line => {
+            line = line.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
+            for (const [key, val] of Object.entries(escapeCharMap))
+                line = line.replaceAll(val, "\\" + key)
+            return line
+        })
+        let quoted = '"' + escapedLines.join('"\n  "') + '"'
+        if (value.length > maxLen) {
+            const restCount = value.length - maxLen
+            quoted += `... ${restCount} more char${restCount > 1 ? "s" : ""}`
+        }
+        return quoted
     }
-    return String(x)
+
+    if (Array.isArray(value)) {
+        const { depth = 4, maxArrayLength = 100, _seen = [] } = options
+        if (_seen.includes(value)) return "[...circular]"
+        if (depth < 0) return "[...]"
+        const contents = value.slice(0, maxArrayLength).map(item =>
+            formatting(item, {
+                ...options,
+                depth: depth - 1,
+                _seen: [..._seen, value],
+            })
+        )
+        if (value.length > maxArrayLength) {
+            const restCount = value.length - maxArrayLength
+            contents.push(`... ${restCount} more item${restCount > 1 ? "s" : ""}`)
+        }
+        if (contents.some(c => c.includes("\n")))
+            return (
+                "[\n  " +
+                contents.map(c => c.replaceAll("\n", "\n  ")).join(",\n  ") +
+                "\n]"
+            )
+        return "[" + contents.join(", ") + "]"
+    }
+
+    return String(value)
 }
 
 const is_valid_paren_string = (x : string) : boolean => {
@@ -215,6 +279,7 @@ export const exec_what = async (
         else if (temp != undefined) stack.push(temp)
     } else {
         temp2 = temp in var_dict ? var_dict[temp] : temp
+        if (typeof temp2 !== "string") throw TypeError(FE`Cannot evaluate ${temp2}, expected String`)
         await eval_what(temp2, fstack, var_dict, output)
     }
     return stack.at(-1)
@@ -244,22 +309,20 @@ export const eval_what = async (
     var stack : any[] = fstack.at(-1)
     let i : number = -1, c : string
     let temp : any, temp2 : any
-    while (++i < code.length) {
+    while (c = code[++i]) {
         if (dead_loop_check())
             throw Object.assign(
                 new Error("Execution timeout"),
                 { [Symbol.for("whatlang.uncatchable_exception")]: true },
             )
-        c = code[i]
         if (/\s/.test(c)) {
             continue
         } else if (/[1-9]/.test(c)) {
             temp = 0
             do {
                 temp = temp * 10 + Number(c)
-                c = code[++i]
-            } while (c && /\d/.test(c))
-            c = code[--i]
+            } while (/\d/.test(c = code[++i]))
+            i--
             stack.push(temp)
         } else if ('0' === c) {
             stack.push(0)
@@ -267,9 +330,8 @@ export const eval_what = async (
             temp = ""
             do {
                 temp += c
-                c = code[++i]
-            } while (c && /[a-zA-Z0-9_]/.test(c))
-            c = code[--i]
+            } while (/[a-zA-Z0-9_]/.test(c = code[++i]))
+            i--
             stack.push(temp.toLowerCase())
         } else if ("'" === c) {
             if (code.codePointAt(++i) > 0xffff) stack.push(code.slice(i, ++i + 1))
@@ -277,23 +339,15 @@ export const eval_what = async (
         } else if (/["`]/.test(c)) {
             temp = ""
             temp2 = c
-            c = code[++i]
-            while (c) {
+            while (c = code[++i]) {
                 if ("\\" === c) {
                     c = code[++i]
-                    temp += ({
-                        "n": "\n",
-                        "t": "\t",
-                        "r": "\r",
-                        "f": "\f",
-                        "v": "\v",
-                        [temp2]: temp2
-                    })[c] ?? c
+                    temp += escapeCharMap[c] ?? c
                 } else if (temp2 === c) break
                 else temp += c
-                c = code[++i]
             }
             if ('"' === temp2) {
+                if (!c) throw SyntaxError(FE`Unterminated String`)
                 stack.push(temp)
             } else if ('`' === temp2) {
                 output(temp)
@@ -303,11 +357,12 @@ export const eval_what = async (
             stack.push(op[c](stack.pop(), temp))
         } else if ('~' === c) {
             temp = stack.pop()
-            stack.push(Number.isNaN(temp) ? 0 : +!temp)
+            stack.push(+!(temp || Number.isNaN(temp)))
         } else if ('[' === c) {
             stack = []
             fstack.push(stack)
         } else if ('|' === c) {
+            if (!Array.isArray(stack.at(-1))) throw TypeError(FE`Cannot open ${stack.at(-1)} as Stack`)
             temp = stack.pop()
             fstack.push(temp)
             stack = temp
@@ -318,14 +373,13 @@ export const eval_what = async (
         } else if ('(' === c) {
             temp = ""
             temp2 = 1
-            c = code[++i]
-            while (true) {
+            while (c = code[++i]) {
                 if ('(' === c) ++temp2
                 else if (')' === c) --temp2
-                if (!c || !temp2) break
+                if (!temp2) break
                 temp += c
-                c = code[++i]
             }
+            if (!c) throw SyntaxError(FE`Unterminated String`)
             stack.push(temp)
         } else if ('.' === c) {
             temp = stack.at(-1)
@@ -359,50 +413,95 @@ export const eval_what = async (
         } else if ('>' === c) {
             stack.push(stack.splice(-stack.pop()))
         } else if ('<' === c) {
-            stack.push(...stack.pop())
+            temp = stack.pop()
+            if (!Array.isArray(temp)) throw TypeError(FE`Cannot spread ${temp}, expected Array`)
+            stack.push(...temp)
         } else if ('{' === c) {
             temp = stack.pop()
             if (!(Number.isNaN(temp) || temp)) {
                 temp = 1
-                while (c && temp) {
-                    c = code[++i]
-                    if ('{' === c) ++temp
+                while (c && temp && (c = code[++i])) {
+                    if ("'" === c) i++
+                    else if ('{' === c) ++temp
                     else if ('}' === c) --temp
+                    else if ('(' === c) {
+                        temp2 = 1
+                        while (temp2 && (c = code[++i])) {
+                            if ('(' === c) ++temp2
+                            else if (')' === c) --temp2
+                        }
+                    } else if ('"' === c || '`' === c) {
+                        temp2 = c
+                        while (c = code[++i]) {
+                            if ('\\' === c) i++
+                            else if (temp2 === c) break
+                        }
+                    }
                 }
+                if (!c) throw SyntaxError(FE`Unterminated loop`)
             }
         } else if ('}' === c) {
             temp = stack.pop()
             if (Number.isNaN(temp) || temp) {
                 temp = -1
-                while (c && temp) {
-                    c = code[--i]
-                    if ('{' === c) ++temp
+                while (temp && (c = code[--i])) {
+                    if ("'" === code[i - 1]) i--
+                    else if ('{' === c) ++temp
                     else if ('}' === c) --temp
+                    else if (')' === c) {
+                        temp2 = -1
+                        while (temp2 && (c = code[--i])) {
+                            c = code[--i]
+                            if ('(' === c) ++temp2
+                            else if (')' === c) --temp2
+                        }
+                    } else if ('"' === c || '`' === c) {
+                        temp2 = c
+                        while (c = code[--i]) {
+                            if ('\\' === code[i - 1]) i--
+                            else if (temp2 === c) break
+                        }
+                    }
                 }
+                if (!c) throw SyntaxError(FE`Unexpected token '}'`)
             }
         } else if ('!' === c) {
             temp = 1
             while ('!' === code[++i]) temp++
-            c = code[--i]
-            while (c && temp) {
-                c = code[++i]
-                if ('{' === c) ++temp
+            i--
+            while (temp && (c = code[++i])) {
+                if ("'" === c) i++
+                else if ('{' === c) ++temp
                 else if ('}' === c) --temp
+                else if ('(' === c) {
+                    temp2 = 1
+                    while (temp2 && (c = code[++i])) {
+                        if ('(' === c) ++temp2
+                        else if (')' === c) --temp2
+                    }
+                } else if ('"' === c || '`' === c) {
+                    temp2 = c
+                    while (c = code[++i]) {
+                        if ('\\' === c) i++
+                        else if (temp2 === c) break
+                    }
+                }
             }
         } else if ("#" === c) {
             temp = stack.pop()
             const arr = []
-            for (const x of stack.at(-1)) {
+            for (const x of error(() => stack.at(-1), () => TypeError(FE`Cannot iterate ${stack.at(-1)}, expected Array or String`))) {
                 const result = await exec_what([stack.concat([x, temp])], var_dict, output)
                 arr.push(result)
             }
             stack.push(arr)
         } else if ("," === c) {
             temp = stack.pop()
-            stack.push(stack.at(-1).slice(temp)[0])
+            error(() => stack.push(stack.at(-1).slice(temp)[0]), () => TypeError(FE`Cannot get item in ${stack.at(-1)}, expected Array or String`))
         } else if (";" === c) {
             temp = stack.pop()
             temp2 = stack.pop()
+            if (!Array.isArray(stack.at(-1))) throw TypeError(FE`Cannot set item in ${stack.at(-1)}, expected Array`)
             if ([undefined, +stack.at(-1).length].includes(temp2) || Number.isNaN(temp2)) {
                 stack.at(-1).push(temp)
             } else {
@@ -412,6 +511,7 @@ export const eval_what = async (
             }
         } else if ("$" === c) {
             temp = stack.pop()
+            if (!Array.isArray(stack.at(-1))) throw TypeError(FE`Cannot delete item in ${stack.at(-1)}, expected Array`)
             stack.at(-1).splice(temp, 1)
         }
         //console.log(stack)
