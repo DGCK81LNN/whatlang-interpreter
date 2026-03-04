@@ -1,4 +1,4 @@
-import { Binary } from "cosmokit"
+import { Binary, makeArray } from "cosmokit"
 
 const op : Record<string, (x : any, y : any) => any> = {
     "+": (x, y) => (
@@ -11,7 +11,18 @@ const op : Record<string, (x : any, y : any) => any> = {
     "*": (x, y) => (x * y),
     "/": (x, y) => (x / y),
     "%": (x, y) => (x % y),
-    "?": (x, y) => x == y ? 0 : +(x > y) - +(x < y) || NaN,
+    "?": function compare(x, y) {
+        if (Array.isArray(x) || Array.isArray(y)) {
+            x = makeArray(x)
+            y = makeArray(y)
+            for (let i = 0; i < Math.min(x.length, y.length); i++) {
+                const r = compare(x[i], y[i])
+                if (r !== 0) return r
+            }
+            return compare(x.length, y.length)
+        }
+        return x == y ? 0 : x > y ? 1 : x < y ? -1 : NaN
+    },
 }
 
 const relize = (x : string) => Array.isArray(x) ? new RegExp(x[0], x[1]) : x
