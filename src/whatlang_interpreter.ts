@@ -321,7 +321,8 @@ export const eval_what = async (
             temp = 0
             do {
                 temp = temp * 10 + Number(c)
-            } while (/\d/.test(c = code[++i]))
+                c = code[++i]
+            } while (c && /\d/.test(c))
             i--
             stack.push(temp)
         } else if ('0' === c) {
@@ -330,7 +331,8 @@ export const eval_what = async (
             temp = ""
             do {
                 temp += c
-            } while (/[a-zA-Z0-9_]/.test(c = code[++i]))
+                c = code[++i]
+            } while (c && /[a-zA-Z0-9_]/.test(c))
             i--
             stack.push(temp.toLowerCase())
         } else if ("'" === c) {
@@ -381,6 +383,8 @@ export const eval_what = async (
             }
             if (!c) throw SyntaxError(FE`Unterminated String`)
             stack.push(temp)
+        } else if (')' === c) {
+            throw SyntaxError(FE`Unexpected token ')'`)
         } else if ('.' === c) {
             temp = stack.at(-1)
             output(typeof temp == "string" ? temp : formatting(temp))
@@ -451,7 +455,6 @@ export const eval_what = async (
                     else if (')' === c) {
                         temp2 = -1
                         while (temp2 && (c = code[--i])) {
-                            c = code[--i]
                             if ('(' === c) ++temp2
                             else if (')' === c) --temp2
                         }
