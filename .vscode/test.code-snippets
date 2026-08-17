@@ -1,0 +1,14 @@
+{
+  "it testEvalWhat": {
+    "prefix": "it-testEvalWhat",
+    "body": "it(\"$1\", async function () {\n  await testEvalWhat(\"$1\", { fstack: FS($2) }, [[$3]])\n})$0",
+    "include": "whatlang_interpreter.spec.ts",
+    "description": "Test case for WhatLang instruction or builtin"
+  },
+  "expect testEvalWhat rejected": {
+    "prefix": "expect-reject",
+    "body": "await expect(() => testEvalWhat(\"$1\", { fstack: FS($2) })).toBeRejectedWith(\n  \"$3\",\n)$0",
+    "include": "whatlang_interpreter.spec.ts",
+    "description": "Expect a WhatLang test run to throw"
+  }
+}

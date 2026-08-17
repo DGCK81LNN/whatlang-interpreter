@@ -1,6 +1,7 @@
 node_modules/
 lib/
 dist/
+coverage/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
@@ -8,3 +9,4 @@ dist/
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+.nyc_output/
