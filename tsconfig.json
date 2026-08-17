@@ -2,6 +2,7 @@
   "include": ["./src/**/*"],
   "compilerOptions": {
     "declaration": true,
+    "rootDir": "./src",
     "outDir": "./lib",
     "lib": ["es2022", "dom"],
     "target": "es2022",

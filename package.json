@@ -1,6 +1,6 @@
 {
   "name": "whatlang-interpreter",
-  "version": "0.4.1",
+  "version": "1.0.0-alpha.1",
   "description": "Interpreter for WhatLang 2024, a stack-based esolang",
   "main": "lib/index.js",
   "types": "src/index.ts",
@@ -26,11 +26,17 @@
   "homepage": "https://github.com/DGCK81LNN/whatlang-interpreter#readme",
   "packageManager": "yarn@4.9.1",
   "scripts": {
+    "lint": "eslint",
+    "debug": "ts-node src/cli.ts",
     "build": "tsc"
   },
   "devDependencies": {
-    "@types/node": "^22.14.1",
-    "typescript": "^5.8.3"
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.2",
+    "eslint": "^10.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0"
   },
   "dependencies": {
     "commander": "^13.1.0",
