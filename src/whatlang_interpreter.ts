@@ -365,7 +365,7 @@ export async function run_what(
     const result = await eval_what(code, {
         fstack: [[]],
         builtins,
-        var_dict: Object.assign({}, var_dict),
+        var_dict,
         output: x => { output += x },
     })
     return {
