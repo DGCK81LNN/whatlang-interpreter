@@ -2,6 +2,7 @@
 /// <reference types="node" />
 import { Command } from "commander"
 import fs from "fs"
+import readline from "readline"
 import { type WhatContext, default_builtins, eval_what } from "./whatlang_interpreter"
 import { version } from "../package.json"
 
@@ -26,8 +27,7 @@ program
         return
       }
     } else if (process.stdin.isTTY && !file) {
-      // interactive mode not implemented yet
-      return program.help()
+      return await runInteractiveSession()
     } else {
       code = fs.readFileSync(0, "utf-8")
     }
@@ -55,4 +55,89 @@ async function executeCode(code: string) {
     console.error(err)
     return 1
   }
+}
+
+async function runInteractiveSession() {
+  const { stdin, stdout } = process
+  const rl = readline.createInterface({
+    input: stdin,
+    output: stdout,
+    terminal: true,
+  })
+  rl.setPrompt("¿ ")
+  rl.prompt()
+
+  let output
+  const ctx = createWhatContext(x => {
+    if (x) output = true
+    stdout.write(x)
+  })
+
+  let code = "",
+    depth = 0,
+    parenDepth = 0,
+    quote = ""
+  const clear = () => {
+    code = ""
+    depth = 0
+    parenDepth = 0
+    quote = ""
+    rl.setPrompt("¿ ")
+  }
+  rl.on("SIGINT", () => {
+    clear()
+    console.log("⎈C")
+    rl.write(null, { ctrl: true, name: "u" }) // clear line
+  })
+
+  for await (const line of rl) {
+    if (!line.trim()) {
+      rl.prompt()
+      continue
+    }
+
+    code += line
+    let i = 0
+    let c: string
+    while ((c = line[i++])) {
+      if (quote) {
+        if (c === "\\") i++
+        else if (c === quote) quote = ""
+        continue
+      } else if (c === '"' || c === "`") {
+        quote = c
+        continue
+      }
+      if (c === "(") ++parenDepth
+      else if (parenDepth && c === ")") --parenDepth
+      else if (parenDepth) continue
+      if (c === "{") ++depth
+      else if (c === "}") {
+        if (!depth) break
+        --depth
+      } else if (c === "'") i++
+    }
+    if (depth || parenDepth || quote) {
+      code += "\n"
+      rl.setPrompt(
+        parenDepth ? "( "
+        : quote ? `${quote} `
+        : "{ ",
+      )
+      rl.prompt()
+      continue
+    }
+
+    output = false
+    try {
+      await eval_what(code, ctx)
+    } catch (err) {
+      console.error(err)
+    }
+
+    clear()
+    if (output) console.log()
+    rl.prompt()
+  }
+  console.log("⌁")
 }
