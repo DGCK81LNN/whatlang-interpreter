@@ -900,6 +900,21 @@ describe("whatlang_interpreter", function () {
     it("time@", async function () {
       await testEvalWhat("time@", {}, [[expect.closeTo(Date.now(), 100)]])
     })
+    it("sleep@", async function () {
+      let start = Date.now()
+      await testEvalWhat("sleep@", { fstack: FS(-1, 0.2) }, [[-1]])
+      expect(Date.now() - start).toBeCloseTo(200, 25)
+      start = Date.now()
+      await testEvalWhat("sleep@", { fstack: FS(-1, -2) }, [[-1]])
+      expect(Date.now() - start).toBeCloseTo(0, 25)
+
+      const abort = new AbortController()
+      const { signal } = abort
+      setTimeout(() => abort.abort(Error("Abort")), 50)
+      await expect(() => testEvalWhat("sleep@", { fstack: FS(-1, 10), signal })).toBeRejectedWith(
+        "Abort",
+      )
+    })
     it("type@", async function () {
       await testEvalWhat("type@", { fstack: FS(42) }, [["Number"]])
       await testEvalWhat("type@", { fstack: FS("foo") }, [["String"]])

@@ -276,6 +276,24 @@ export const default_builtins: Record<string, WhatFunc> = {
         return char
     }).join(""),
     time: () => Date.now(),
+    sleep: async function (x) {
+        const milliseconds = to_int(to_number(x) * 1000, NaN)
+        if (!(milliseconds >= 0)) return // TODO: emit warning
+        return new Promise((res, rej) => {
+            const { signal } = this
+            signal?.throwIfAborted()
+            const timeout = setTimeout(() => {
+                res(undefined)
+                signal?.removeEventListener("abort", abort)
+            }, milliseconds)
+            const abort = () => {
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                rej(signal!.reason)
+                clearTimeout(timeout)
+            }
+            signal?.addEventListener("abort", abort)
+        })
+    },
     type: x => x == undefined ? "Undefined" : x.constructor.name,
     all: function () { return Object.keys(this.builtins) },
     b64: x => {
