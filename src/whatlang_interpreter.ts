@@ -403,8 +403,9 @@ export async function exec_what(ctx: WhatContext) {
     if (typeof func === "function") {
         const fill = Math.max(0, func.length - stack.length)
         const args = [...Array<undefined>(fill), ...(func.length ? stack.splice(-func.length) : [])]
-        stack.push(await func.apply(ctx, args) ?? undefined)
-        return stack.at(-1)
+        const result = await func.apply(ctx, args)
+        if (result !== undefined) stack.push(result ?? undefined)
+        return result ?? undefined
     } else {
         if (typeof func !== "string") throw TypeError(FE`Cannot evaluate ${func}, expected String`)
         const { result } = await eval_what(func, ctx)
