@@ -122,7 +122,7 @@ function FE(segs: readonly string[], ...values: WhatValue[]) {
     return String.raw({ raw: segs }, ...values.map(x => formatting(x, { depth: 1, maxArrayLength: 4, maxStringLength: 50 })))
 }
 
-export const default_builtins: Record<string, WhatFunc> = {
+export const default_builtins: Record<string, WhatFunc> = Object.freeze({
     num: x => to_number(x),
     str: x => to_string(x),
     repr: x => repr_formatting(x),
@@ -306,7 +306,7 @@ export const default_builtins: Record<string, WhatFunc> = {
         if (!Array.isArray(x)) throw TypeError(FE`Cannot decode ${x} from UTF-8, expected Array`)
         return new TextDecoder().decode(Uint8Array.from(x, i => to_int(i)))
     },
-}
+})
 
 const escapeCharMap: Record<string, string> = { b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' }
 export function formatting(

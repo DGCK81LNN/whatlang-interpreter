@@ -5,12 +5,12 @@ import fs from "fs"
 import readline from "readline"
 import {
   type WhatContext,
-  default_builtins,
   eval_what,
   formatting,
+  get_native_builtins,
   is_what_value,
   uncatchable_exception,
-} from "./whatlang_interpreter"
+} from "."
 import { version } from "../package.json"
 
 const program = new Command()
@@ -49,7 +49,7 @@ function createWhatContext(
 ): WhatContext {
   return {
     fstack: [[]],
-    builtins: default_builtins,
+    builtins: get_native_builtins(),
     var_dict: {},
     output,
   }
