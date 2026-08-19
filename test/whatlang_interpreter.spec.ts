@@ -847,6 +847,16 @@ describe("whatlang_interpreter", function () {
       await testEvalWhat("try@", { fstack: FS("a[b[c throw@") }, [["a", ["b", []], ["Error", "c"]]])
       await testEvalWhat("try@", { fstack: FS("a") }, [["a", [undefined, undefined]]])
 
+      const builtins = {
+        ...default_builtins,
+        foo() {
+          throw Object.assign(new Error("Interrupt"), { [uncatchable_exception]: true })
+        },
+      }
+      await expect(() => testEvalWhat("try@", { fstack: FS("foo"), builtins })).toBeRejectedWith(
+        "Interrupt",
+      )
+
       await expect(() => testEvalWhat("throw@", { fstack: FS(["Foo", "bar"]) })).toBeRejectedWith(
         "bar",
       )

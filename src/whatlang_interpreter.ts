@@ -18,8 +18,10 @@ export interface WhatContext {
     var_dict: Record<string, WhatValue>
     /** Called when outputting a value. */
     output: (x: string) => void
-    /** Called in the main loop during execution, Return `true` or throw an `UncatchableException` to terminate execution. */
-    dead_loop_check?: () => boolean | null | undefined
+    /** Called in the main loop during execution. Return `true` or throw an `UncatchableException` to terminate execution. */
+    dead_loop_check?: () => Awaitable<boolean | null | undefined>
+    /** AbortSignal to terminate execution. Use an `UncatchableException` as reason when calling `abort()` on the corresponding AbortController. */
+    signal?: AbortSignal
 }
 export const is_what_value = (x: unknown, _seen: unknown[] = []): x is WhatValue =>
     x === undefined || typeof x === "string" || typeof x === "number" ||
@@ -225,14 +227,13 @@ export const default_builtins: Record<string, WhatFunc> = {
         try {
             await exec_what({ ...this, fstack })
         } catch (e) {
-            if (is_uncatchable_exception(e)) throw e
-
             // close open Arrays
             while (fstack.length > 1) {
                 const array = fstack.pop()
                 fstack.at(-1)!.push(array)
             }
 
+            if (is_uncatchable_exception(e)) throw e
             if (e instanceof Error) return [e.name, e.message]
             if (is_what_value(e)) return [undefined, e]
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -448,10 +449,11 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
     let stack = ctx.fstack.at(-1)!
     let i = -1, c: string
     while ((c = code[++i])) {
-        if (dead_loop_check())
+        if (await dead_loop_check())
             throw Object.assign(new Error("Execution timeout"), {
                 [Symbol.for("whatlang.uncatchable_exception")]: true,
             })
+        ctx.signal?.throwIfAborted()
         if (/\s/.test(c)) {
             continue
         } else if (/[1-9]/.test(c)) {
@@ -553,7 +555,6 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
             )
         } else if ('@' === c) {
             await exec_what(ctx)
-            // TODO: should we keep the original fstack intact, leaving inner code with fstack: [stack]?
             stack = ctx.fstack.at(-1)!
         } else if ('>' === c) {
             const count = to_number(stack.pop())
@@ -639,6 +640,7 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
                 throw TypeError(FE`Cannot iterate ${array}, expected Array or String`)
             const arr = []
             for (const x of array) {
+                ctx.signal?.throwIfAborted()
                 const result = await exec_what({ ...ctx, fstack: [stack.concat([x, func])] })
                 arr.push(result)
             }
