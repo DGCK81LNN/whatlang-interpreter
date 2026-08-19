@@ -354,18 +354,49 @@ describe("whatlang_interpreter", function () {
     })
     it("-", async function () {
       await testEvalWhat("-", { fstack: FS(114, "514") }, [[-400]])
+      await testEvalWhat("-", { fstack: FS("114", 0) }, [[114]])
       await testEvalWhat("-", { fstack: FS("114", undefined) }, [[NaN]])
       await testEvalWhat("-", { fstack: FS(undefined, undefined) }, [[NaN]])
     })
+    it("- (Strings)", async function () {
+      await testEvalWhat("-", { fstack: FS("114", "514") }, [[""]])
+      await testEvalWhat("-", { fstack: FS("114", "aa") }, [["114"]])
+      await testEvalWhat("-", { fstack: FS("abc", "b") }, [["ac"]])
+    })
+    it("- (Arrays)", async function () {
+      await testEvalWhat("-", { fstack: FS(["a", 1, "b", 2], ["b", 1]) }, [[["a", 2]]])
+      await testEvalWhat("-", { fstack: FS(["a", 1, "b", 2], 1) }, [[["a", "b", 2]]])
+      await testEvalWhat("-", { fstack: FS("a", ["b", "c"]) }, [[["a"]]])
+    })
     it("*", async function () {
       await testEvalWhat("*", { fstack: FS(114, "514") }, [[114 * 514]])
-      await testEvalWhat("*", { fstack: FS("114", undefined) }, [[NaN]])
+      await testEvalWhat("*", { fstack: FS(undefined, "514") }, [[NaN]])
       await testEvalWhat("*", { fstack: FS(undefined, undefined) }, [[NaN]])
+    })
+    it("* (Strings)", async function () {
+      await testEvalWhat("*", { fstack: FS("114", undefined) }, [[""]])
+      await testEvalWhat("*", { fstack: FS("ab", 3) }, [["ababab"]])
+      await testEvalWhat("*", { fstack: FS("ab", 0) }, [[""]])
+      await testEvalWhat("*", { fstack: FS("ab", -1) }, [[""]])
+    })
+    it("* (Arrays)", async function () {
+      await testEvalWhat("*", { fstack: FS([1, 2], 3) }, [[[1, 2, 1, 2, 1, 2]]])
+      await testEvalWhat("*", { fstack: FS([1, 2], 0) }, [[[]]])
+      await testEvalWhat("*", { fstack: FS([1, 2], NaN) }, [[[]]])
     })
     it("/", async function () {
       await testEvalWhat("/", { fstack: FS(114, "514") }, [[114 / 514]])
-      await testEvalWhat("/", { fstack: FS("114", undefined) }, [[NaN]])
+      await testEvalWhat("/", { fstack: FS(undefined, "514") }, [[NaN]])
       await testEvalWhat("/", { fstack: FS(undefined, undefined) }, [[NaN]])
+    })
+    it("/ (Strings)", async function () {
+      await testEvalWhat("/", { fstack: FS("abcde", 2) }, [[["ab", "cd", "e"]]])
+      await testEvalWhat("/", { fstack: FS("abc", 0) }, [[["abc"]]])
+      await testEvalWhat("/", { fstack: FS("abc", undefined) }, [[["abc"]]])
+    })
+    it("/ (Arrays)", async function () {
+      await testEvalWhat("/", { fstack: FS([1, 2, 3, 4, 5], 2) }, [[[[1, 2], [3, 4], [5]]]])
+      await testEvalWhat("/", { fstack: FS([1, 2], 0) }, [[[[1, 2]]]])
     })
     it("%", async function () {
       await testEvalWhat("%", { fstack: FS(114, "514") }, [[114 % 514]])
@@ -537,6 +568,7 @@ describe("whatlang_interpreter", function () {
     })
     it(",", async function () {
       await testEvalWhat(",", { fstack: FS([11, 12, 13], 1) }, [[[11, 12, 13], 12]])
+      await testEvalWhat(",", { fstack: FS([11, 12, 13], [2]) }, [[[11, 12, 13], 13]])
       await testEvalWhat(",", { fstack: FS("abcdef", "-2.2") }, [["abcdef", "e"]])
       await testEvalWhat(",", { fstack: FS("abcdef", Infinity) }, [["abcdef", undefined]])
       await testEvalWhat(",", { fstack: FS([11, 12, 13], -4) }, [[[11, 12, 13], undefined]])
@@ -546,9 +578,36 @@ describe("whatlang_interpreter", function () {
         "Cannot get item in 6, expected Array or String",
       )
     })
+    it(", (slice)", async function () {
+      await testEvalWhat(",", { fstack: FS([11, 12, 13], [1, 3]) }, [
+        [
+          [11, 12, 13],
+          [12, 13],
+        ],
+      ])
+      await testEvalWhat(",", { fstack: FS([11, 12, 13], [-3, -1]) }, [
+        [
+          [11, 12, 13],
+          [11, 12],
+        ],
+      ])
+      await testEvalWhat(",", { fstack: FS("abcdef", [1, 4]) }, [["abcdef", "bcd"]])
+      await testEvalWhat(",", { fstack: FS([11, 12, 13], [1, NaN]) }, [
+        [
+          [11, 12, 13],
+          [12, 13],
+        ],
+      ])
+      await testEvalWhat(",", { fstack: FS([11, 12, 13], [undefined, undefined]) }, [
+        [[11, 12, 13], []],
+      ])
+      await expect(() =>
+        testEvalWhat(",", { fstack: FS([11, 12, 13], ["1", "foo"]) }),
+      ).toBeRejectedWith('Invalid range ["1", "foo"] for getting slice in Array')
+    })
     it(";", async function () {
       await testEvalWhat(";", { fstack: FS([11, 12, 13], 1, 42) }, [[[11, 42, 13]]])
-      await testEvalWhat(";", { fstack: FS([11, 12, 13], -1.5, 42) }, [[[11, 12, 42]]])
+      await testEvalWhat(";", { fstack: FS([11, 12, 13], [-1.5], 42) }, [[[11, 12, 42]]])
       await testEvalWhat(";", { fstack: FS([11, 12, 13], "3", 42) }, [[[11, 12, 13, 42]]])
       await testEvalWhat(";", { fstack: FS([11, 12, 13], -4, 42) }, [[[11, 12, 13]]])
       await testEvalWhat(";", { fstack: FS([11, 12, 13], NaN, 42) }, [[[11, 12, 13, 42]]])
@@ -560,9 +619,22 @@ describe("whatlang_interpreter", function () {
         'Invalid index "a" for setting item in Array',
       )
     })
+    it("; (slice)", async function () {
+      await testEvalWhat(";", { fstack: FS([11, 12, 13], [1, 2], [42]) }, [[[11, 42, 13]]])
+      await testEvalWhat(";", { fstack: FS([11, 12, 13], [1, 3], [42]) }, [[[11, 42]]])
+      await testEvalWhat(";", { fstack: FS([11, 12, 13], [-2, -1], [42]) }, [[[11, 42, 13]]])
+      await testEvalWhat(";", { fstack: FS([11, 12, 13], [0, 1], [42, 43]) }, [[[42, 43, 12, 13]]])
+      await expect(() =>
+        testEvalWhat(";", { fstack: FS([11, 12, 13], ["1", "foo"], [42]) }),
+      ).toBeRejectedWith('Invalid range ["1", "foo"] for replacing slice in Array')
+      await expect(() =>
+        testEvalWhat(";", { fstack: FS([11, 12, 13], [1, 2], 42) }),
+      ).toBeRejectedWith("Cannot set range in Array to 42, expected Array")
+    })
     it("$", async function () {
       await testEvalWhat("$", { fstack: FS([11, 12, 13], 2) }, [[[11, 12]]])
       await testEvalWhat("$", { fstack: FS([11, 12, 13], "-2.2") }, [[[11, 13]]])
+      await testEvalWhat("$", { fstack: FS([11, 12, 13], [1]) }, [[[11, 13]]])
       await testEvalWhat("$", { fstack: FS([11, 12, 13], 3) }, [[[11, 12, 13]]])
       await testEvalWhat("$", { fstack: FS([11, 12, 13], -4) }, [[[11, 12, 13]]])
       await testEvalWhat("$", { fstack: FS([11, 12, 13], NaN) }, [[[11, 12, 13]]])
@@ -573,6 +645,14 @@ describe("whatlang_interpreter", function () {
       await expect(() => testEvalWhat("$", { fstack: FS([11, 12, 13], "a") })).toBeRejectedWith(
         'Invalid index "a" for deleting item in Array',
       )
+    })
+    it("$ (slice)", async function () {
+      await testEvalWhat("$", { fstack: FS([11, 12, 13], [1, 3]) }, [[[11]]])
+      await testEvalWhat("$", { fstack: FS([11, 12, 13], [-3, -1]) }, [[[13]]])
+      await testEvalWhat("$", { fstack: FS([11, 12, 13], [1, 1]) }, [[[11, 12, 13]]])
+      await expect(() =>
+        testEvalWhat("$", { fstack: FS([11, 12, 13], ["1", "foo"]) }),
+      ).toBeRejectedWith('Invalid range ["1", "foo"] for deleting slice in Array')
     })
   })
 
@@ -640,7 +720,12 @@ describe("whatlang_interpreter", function () {
     })
     it("range@", async function () {
       await testEvalWhat("range@", { fstack: FS(5) }, [[[0, 1, 2, 3, 4]]])
+      await testEvalWhat("range@", { fstack: FS("3") }, [[[0, 1, 2]]])
       await testEvalWhat("range@", { fstack: FS(0) }, [[[]]])
+      await testEvalWhat("range@", { fstack: FS([2, 5]) }, [[[2, 3, 4]]])
+      await testEvalWhat("range@", { fstack: FS([0, "3"]) }, [[[0, 1, 2]]])
+      await testEvalWhat("range@", { fstack: FS([5, 2]) }, [[[]]])
+      await testEvalWhat("range@", { fstack: FS([3, 3]) }, [[[]]])
     })
     it("len@", async function () {
       await testEvalWhat("len@", { fstack: FS(["a", "b"]) }, [[["a", "b"], 2]])
@@ -669,8 +754,9 @@ describe("whatlang_interpreter", function () {
       await testEvalWhat("join@", { fstack: FS([["a"], ["b"]], ",") }, [
         [[["a"], ["b"]], '["a"],["b"]'],
       ])
+      await testEvalWhat("join@", { fstack: FS("abc", ",") }, [["abc", "a,b,c"]])
       await expect(() => testEvalWhat("join@", { fstack: FS(6, ",") })).toBeRejectedWith(
-        "Cannot join 6, expected Array or String",
+        "Cannot join 6, expected Array",
       )
     })
     it("reverse@", async function () {
@@ -760,6 +846,14 @@ describe("whatlang_interpreter", function () {
       await expect(() => testEvalWhat("throw@", { fstack: FS("Foo") })).toBeRejectedWith("Foo")
       await testEvalWhat("try@", { fstack: FS("a[b[c throw@") }, [["a", ["b", []], ["Error", "c"]]])
       await testEvalWhat("try@", { fstack: FS("a") }, [["a", [undefined, undefined]]])
+
+      await expect(() => testEvalWhat("throw@", { fstack: FS(["Foo", "bar"]) })).toBeRejectedWith(
+        "bar",
+      )
+      await testEvalWhat("try@", { fstack: FS(["Foo", "bar"], "throw@") }, [[["Foo", "bar"]]])
+      await testEvalWhat("try@", { fstack: FS([undefined, "raw"], "throw@") }, [
+        [[undefined, "raw"]],
+      ])
     })
     it("match@", async function () {
       await testEvalWhat("match@", { fstack: FS("-hi-world-", "\\w+") }, [[["hi"]]])
@@ -777,6 +871,22 @@ describe("whatlang_interpreter", function () {
       await testEvalWhat("repl@", { fstack: FS("hi-w", [], 1) }, [["1hi-w"]])
       await testEvalWhat("repl@", { fstack: FS("aaundefined", undefined, 1) }, [["aaundefined"]])
     })
+    it("reesc@", async function () {
+      await testEvalWhat("reesc@", { fstack: FS("a") }, [["\\x61"]])
+      await testEvalWhat("reesc@", { fstack: FS("ab") }, [["\\x61b"]])
+      await testEvalWhat("reesc@", { fstack: FS("A") }, [["\\x41"]])
+      await testEvalWhat("reesc@", { fstack: FS("1") }, [["\\x31"]])
+      await testEvalWhat("reesc@", { fstack: FS(" ") }, [["\\x20"]])
+      await testEvalWhat("reesc@", { fstack: FS("\t\n\v\f\r") }, [["\\t\\n\\v\\f\\r"]])
+      await testEvalWhat("reesc@", { fstack: FS("+*?.[]^$(){}|\\/") }, [
+        ["\\+\\*\\?\\.\\[\\]\\^\\$\\(\\)\\{\\}\\|\\\\\\/"],
+      ])
+      await testEvalWhat("reesc@", { fstack: FS("!#',-;:@`~") }, [
+        ["\\x21\\x23\\x27\\x2c\\x2d\\x3b\\x3a\\x40\\x60\\x7e"],
+      ])
+      await testEvalWhat("reesc@", { fstack: FS("😨") }, [["😨"]])
+      await testEvalWhat("reesc@", { fstack: FS("\ude28\ud83d") }, [["\\ude28\\ud83d"]])
+    })
     it("time@", async function () {
       await testEvalWhat("time@", {}, [[expect.closeTo(Date.now(), 100)]])
     })
@@ -785,6 +895,9 @@ describe("whatlang_interpreter", function () {
       await testEvalWhat("type@", { fstack: FS("foo") }, [["String"]])
       await testEvalWhat("type@", { fstack: FS([6]) }, [["Array"]])
       await testEvalWhat("type@", { fstack: FS(undefined) }, [["Undefined"]])
+    })
+    it("all@", async function () {
+      await testEvalWhat("all@", {}, [[Object.keys(default_builtins)]])
     })
     it("b64@", async function () {
       await testEvalWhat("b64@", { fstack: FS([1, 1, 1, 1]) }, [["AQEBAQ=="]])

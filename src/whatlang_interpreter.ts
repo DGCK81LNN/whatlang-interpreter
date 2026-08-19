@@ -1,4 +1,4 @@
-import { type Awaitable, Binary } from "cosmokit"
+import { type Awaitable, Binary, difference } from "cosmokit"
 
 /** WhatLang value. */
 export type WhatValue = string | number | undefined | WhatValue[]
@@ -41,10 +41,15 @@ export function to_number(x: WhatValue): number {
 }
 export const to_bool = (x: WhatValue) => !!x || Number.isNaN(x)
 
-/** Convert number to integer. Note that the result might be ±Infinity. */
-function to_int(x: number) {
+/**
+ * Convert value to integer. Note that the result might be ±Infinity.
+ *
+ * @param x Fallback result for NaN, defaults to 0.
+ */
+function to_int(x: WhatValue, nan = 0) {
     x = to_number(x)
-    return Math.trunc(x || 0) // NaN becomes 0
+    if (Number.isNaN(x)) return nan
+    return Math.trunc(x)
 }
 
 const op: Record<string, (x: WhatValue, y: WhatValue) => WhatValue> = {
@@ -52,9 +57,35 @@ const op: Record<string, (x: WhatValue, y: WhatValue) => WhatValue> = {
         Array.isArray(x) || Array.isArray(y) ? ([] as WhatValue[]).concat(x, y)
         : typeof x === "string" || typeof y === "string" ? to_string(x) + to_string(y)
         : to_number(x) + to_number(y),
-    '-': (x, y) => to_number(x) - to_number(y),
-    '*': (x, y) => to_number(x) * to_number(y),
-    '/': (x, y) => to_number(x) / to_number(y),
+    '-': (x, y) =>
+        Array.isArray(x) ? difference(x, Array.isArray(y) ? y : [y])
+        : Array.isArray(y) ? difference([x], y)
+        : typeof x === "string" && typeof y === "string" ?
+            difference(Array.from(to_string(x)), Array.from(to_string(y))).join("")
+        :   to_number(x) - to_number(y),
+    '*': (x, y) => {
+        if (Array.isArray(x) || typeof x === "string") {
+            const num = to_int(y)
+            if (num <= 0) return typeof x === "string" ? "" : []
+            if (typeof x === "string") return x.repeat(num)
+            return Array.from({ length: num }, () => x).flat()
+        }
+        return to_number(x) * to_number(y)
+    },
+    '/': (x, y) => {
+        if (Array.isArray(x) || typeof x === "string") {
+            const num = to_int(y)
+            if (num <= 0) return [x]
+            const array = typeof x === "string" ? Array.from(x) : x
+            const newArray = Array.from(
+                { length: Math.ceil(array.length / num) },
+                (_, i) => array.slice(i * num, (i + 1) * num),
+            )
+            if (typeof x === "string") return newArray.map(x => x.join(""))
+            return newArray
+        }
+        return to_number(x) / to_number(y)
+    },
     '%': (x, y) => to_number(x) % to_number(y),
     '?': function compare(x, y): number {
         if (Array.isArray(x) || Array.isArray(y)) {
@@ -116,9 +147,11 @@ export const default_builtins: Record<string, WhatFunc> = {
     },
     flr: x => Math.floor(to_number(x)),
     range: x => {
-        x = to_int(to_number(x))
-        if (!(x > 0)) return []
-        return Array.from({ length: x }, (_, i) => i)
+        const fromTo = Array.isArray(x) ? x.slice(0, 2) : [0, x]
+        const [from, to] = fromTo.map(x => to_int(x))
+        const length = to - from
+        if (!(length > 0)) return []
+        return Array.from({ length }, (_, i) => from + i)
     },
     len: function () {
         const array = this.fstack.at(-1)!.at(-1)
@@ -137,10 +170,13 @@ export const default_builtins: Record<string, WhatFunc> = {
     },
     join: function (x) {
         x = to_string(x)
-        const array = this.fstack.at(-1)!.at(-1)
-        if (typeof array === "string") return [...array].join(x)
+        let array = this.fstack.at(-1)!.at(-1)
+        if (typeof array === "string") {
+            // TODO: emit deprecation warning
+            array = [...array]
+        }
         if (Array.isArray(array)) return array.map(to_string).join(x)
-        throw TypeError(FE`Cannot join ${array}, expected Array or String`)
+        throw TypeError(FE`Cannot join ${array}, expected Array`)
     },
     reverse: function () {
         const array = this.fstack.at(-1)!.at(-1)
@@ -204,7 +240,14 @@ export const default_builtins: Record<string, WhatFunc> = {
         }
         return [undefined, undefined]
     },
-    throw: x => { throw new Error(to_string(x)) },
+    throw: x => {
+        if (Array.isArray(x)) {
+            // eslint-disable-next-line @typescript-eslint/only-throw-error
+            if (x[0] === undefined) throw x[1]
+            throw Object.assign(new Error(to_string(x[1])), { name: to_string(x[0]) })
+        }
+        throw new Error(to_string(x))
+    },
     match: (x, y) => [...to_string(x).match(relize(y)) ?? []],
     repl: (x, y, z) => {
         x = to_string(x)
@@ -213,17 +256,36 @@ export const default_builtins: Record<string, WhatFunc> = {
         if (Array.isArray(y)) return x.replace(relize(y), z)
         return x.replace(to_string(y), z)
     },
+    // RegExp.escape() impl
+    reesc: x => Array.from(to_string(x), (char, i) => {
+        if (char === "\t") return "\\t"
+        if (char === "\n") return "\\n"
+        if (char === "\v") return "\\v"
+        if (char === "\f") return "\\f"
+        if (char === "\r") return "\\r"
+        if (/[$()*+./?[\\\]^{|}]/.test(char)) return "\\" + char
+        if (
+            (i === 0 && /[\da-z]/i.test(char)) ||
+            /^[!"#%&',\-:;<=>@`~\s\ud800-\udfff]$/.test(char)
+        ) {
+            const cp = char.codePointAt(0)!
+            if (cp <= 0xff) return "\\x" + cp.toString(16).padStart(2, "0")
+            return "\\u" + cp.toString(16).padStart(4, "0")
+        }
+        return char
+    }).join(""),
     time: () => Date.now(),
     type: x => x == undefined ? "Undefined" : x.constructor.name,
+    all: function () { return Object.keys(this.builtins) },
     b64: x => {
         if (!Array.isArray(x)) throw TypeError(FE`Cannot convert ${x} to Base64, expected Array`)
-        return Binary.toBase64(Uint8Array.from(x, i => to_int(to_number(i))).buffer)
+        return Binary.toBase64(Uint8Array.from(x, i => to_int(i)).buffer)
     },
     nb64: x => [...safeFromBase64(to_string(x))],
     utf8: x => [...new TextEncoder().encode(to_string(x))],
     nutf8: x => {
         if (!Array.isArray(x)) throw TypeError(FE`Cannot decode ${x} from UTF-8, expected Array`)
-        return new TextDecoder().decode(Uint8Array.from(x, i => to_int(to_number(i))))
+        return new TextDecoder().decode(Uint8Array.from(x, i => to_int(i)))
     },
 }
 
@@ -585,22 +647,47 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
             const index = stack.pop()
             const array = stack.at(-1)
             if (typeof array !== "string" && !Array.isArray(array))
-                throw TypeError(FE`Cannot get item in ${array}, expected Array or String`)
+                throw TypeError(
+                    `Cannot get ${Array.isArray(index) && index.length >= 2 ? "slice" : "item"}` +
+                        FE` in ${array}, expected Array or String`
+                )
 
-            const indexNum = to_number(index)
-            if (isNaN(indexNum)) {
-                stack.push(undefined)
+            if (Array.isArray(index) && index.length >= 2) {
+                const [from, to] = index.slice(0, 2).map(x => {
+                    if (x == undefined || Number.isNaN(x)) return Infinity
+                    return to_int(x, NaN)
+                })
+                if (isNaN(from) || isNaN(to))
+                    throw TypeError(FE`Invalid range ${index} for getting slice in ` + array.constructor.name)
+                stack.push(array.slice(from, to))
             } else {
-                stack.push(array.at(to_int(indexNum)))
+                const indexNum = to_int(index, NaN)
+                if (isNaN(indexNum)) stack.push(undefined)
+                else stack.push(array.at(indexNum))
             }
         } else if (';' === c) {
             const value = stack.pop()
             const index = stack.pop()
             const array = stack.at(-1)
             if (!Array.isArray(array))
-                throw TypeError(FE`Cannot set item in ${array}, expected Array`)
+                throw TypeError(
+                    `Cannot ${Array.isArray(index) && index.length >= 2 ? "replace slice" : "set item"}` +
+                        FE` in ${array}, expected Array`
+                )
 
-            if (index == undefined || Number.isNaN(index) || index == array.length) {
+            if (Array.isArray(index) && index.length >= 2) {
+                if (!Array.isArray(value))
+                    throw TypeError(FE`Cannot set range in Array to ${value}, expected Array`)
+                let [from, to] = index.slice(0, 2).map(x => {
+                    if (x == undefined || Number.isNaN(x)) return Infinity
+                    return to_int(x, NaN)
+                })
+                if (isNaN(from) || isNaN(to))
+                    throw TypeError(FE`Invalid range ${index} for replacing slice in Array`)
+                if (from < 0) from += array.length
+                if (to < 0) to += array.length
+                array.splice(from, to - from, ...value)
+            } else if (index == undefined || Number.isNaN(index) || index == array.length) {
                 array.push(value)
             } else {
                 const indexNum = to_number(index)
@@ -614,9 +701,22 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
             const index = stack.pop()
             const array = stack.at(-1)
             if (!Array.isArray(array))
-                throw TypeError(FE`Cannot delete item in ${array}, expected Array`)
+                throw TypeError(
+                    `Cannot delete ${Array.isArray(index) && index.length >= 2 ? "slice" : "item"}` +
+                        FE` in ${array}, expected Array`
+                )
 
-            if (index != undefined && !Number.isNaN(index)) {
+            if (Array.isArray(index) && index.length >= 2) {
+                let [from, to] = index.slice(0, 2).map(x => {
+                    if (x == undefined || Number.isNaN(x)) return Infinity
+                    return to_int(x, NaN)
+                })
+                if (isNaN(from) || isNaN(to))
+                    throw TypeError(FE`Invalid range ${index} for deleting slice in Array`)
+                if (from < 0) from += array.length
+                if (to < 0) to += array.length
+                array.splice(from, to - from)
+            } else if (index != undefined && !Number.isNaN(index)) {
                 const indexNum = to_number(index)
                 if (isNaN(indexNum))
                     throw TypeError(FE`Invalid index ${index} for deleting item in Array`)
