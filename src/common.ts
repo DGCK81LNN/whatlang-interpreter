@@ -11,7 +11,7 @@ export interface CommonBuiltinsOptions {
   fetch?: typeof fetch | null
 }
 
-function FE(segs: readonly string[], ...values: WhatValue[]) {
+export function FE(segs: readonly string[], ...values: WhatValue[]) {
   return String.raw(
     { raw: segs },
     ...values.map(x => formatting(x, { depth: 1, maxArrayLength: 4, maxStringLength: 50 })),

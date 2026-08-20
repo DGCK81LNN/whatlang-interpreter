@@ -43,4 +43,4 @@ await eval_what("42answer=_", context)
 const { result } = await eval_what("answer^.", context)
 ```
 
-`default_builtins` only contains the core builtins of the language. `get_common_builtins()` provides the ability to perform simple HTTP requests where `fetch()` is available, and `get_native_builtins()` will add more abilities including file I/O and subprocess execution (coming soon).
+`default_builtins` only contains the core builtins of the language. `get_common_builtins()` provides the ability to perform simple HTTP requests where `fetch()` is available, and `get_native_builtins()` will add more abilities including file I/O and subprocess execution.

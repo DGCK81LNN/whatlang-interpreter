@@ -1,3 +1,3 @@
 export * from "./whatlang_interpreter"
-export * from "./common"
-export * from "./native"
+export { type CommonBuiltinsOptions, get_common_builtins } from "./common"
+export { type NativeBuiltinsOptions, get_native_builtins } from "./native"

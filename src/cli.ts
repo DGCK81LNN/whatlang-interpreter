@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /// <reference types="node" />
 import { Command } from "commander"
-import fs from "fs"
-import readline from "readline"
+import fs from "node:fs"
+import readline from "node:readline"
 import {
+  type NativeBuiltinsOptions,
   type WhatContext,
   eval_what,
   formatting,
@@ -46,10 +47,11 @@ program.parse(process.argv)
 
 function createWhatContext(
   output: (x: string) => void = x => process.stdout.write(x),
+  options?: NativeBuiltinsOptions,
 ): WhatContext {
   return {
     fstack: [[]],
-    builtins: get_native_builtins(),
+    builtins: get_native_builtins(options),
     var_dict: {},
     output,
   }
@@ -87,6 +89,8 @@ async function runInteractiveSession() {
     if (!x) return
     output = true
     stdout.write(x)
+  }, {
+    input: null, // TODO
   })
 
   let abort: AbortController

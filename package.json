@@ -48,6 +48,8 @@
   },
   "dependencies": {
     "commander": "^13.1.0",
-    "cosmokit": "^1.6.2"
+    "cosmokit": "^1.6.2",
+    "execa": "^8.0.1",
+    "is-runtime": "^1.0.0"
   }
 }
