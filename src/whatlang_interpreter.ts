@@ -12,7 +12,7 @@ export type WhatFunc = (this: WhatContext, ...args: WhatValue[]) => Awaitable<Wh
 export interface WhatContext {
     /** Frame Stack. Must not be empty. */
     fstack: WhatValue[][]
-    /** Builtins dict. */
+    /** Builtins dict. Keys should consist of only lowercase letters a-z and optionally numbers 0-9. */
     builtins: Record<string, WhatFunc>
     /** Variables dict. */
     var_dict: Record<string, WhatValue>
@@ -415,8 +415,13 @@ export async function exec_what(ctx: WhatContext) {
     const stack = ctx.fstack.at(-1)!
     let func: WhatValue | WhatFunc = stack.pop()
     if (typeof func === "string" && /^[\dA-Z]\w*$|^[^!-~]+$/i.test(func)) {
-        if (Object.hasOwn(ctx.var_dict, func)) func = ctx.var_dict[func]
-        else if (Object.hasOwn(ctx.builtins, func)) func = ctx.builtins[func]
+        if (/^[\dA-Z]*[A-Z][\dA-Z]*$/.test(func)) {
+          const lower = func.toLowerCase()
+          if (Object.hasOwn(ctx.builtins, lower)) func = ctx.builtins[lower]
+        } else {
+          if (Object.hasOwn(ctx.var_dict, func)) func = ctx.var_dict[func]
+          else if (Object.hasOwn(ctx.builtins, func)) func = ctx.builtins[func]
+        }
     }
     if (typeof func === "function") {
         const fill = Math.max(0, func.length - stack.length)
@@ -569,7 +574,7 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
                 throw TypeError(FE`Invalid variable name ${name} for retrieval, expected String`)
             stack.push(
                 Object.hasOwn(ctx.var_dict, name) ? ctx.var_dict[name]
-                : Object.hasOwn(ctx.builtins, name) ? `${name}@`
+                : Object.hasOwn(ctx.builtins, name) ? `(${name.toUpperCase()})@`
                 :   undefined
             )
         } else if ('@' === c) {

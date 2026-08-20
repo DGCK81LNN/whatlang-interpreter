@@ -489,17 +489,20 @@ describe("whatlang_interpreter", function () {
       const var_dict = { foo: 42 }
       await testEvalWhat("^", { fstack: FS("foo"), var_dict }, [[42]])
       await testEvalWhat("^", { fstack: FS("bar"), var_dict }, [[undefined]])
-      await testEvalWhat("^", { fstack: FS("num"), var_dict }, [["num@"]])
+      await testEvalWhat("^", { fstack: FS("num"), var_dict }, [["(NUM)@"]])
       await expect(() => testEvalWhat("^", { fstack: FS(6), var_dict })).toBeRejectedWith(
         "Invalid variable name 6 for retrieval, expected String",
       )
     })
     it("@", async function () {
       const builtins: WhatContext["builtins"] = { bar: x => [x, 42] }
-      const var_dict = { foo: "6!" }
+      const var_dict: WhatContext["var_dict"] = { foo: "6!" }
       await testEvalWhat("@", { fstack: FS("0!"), builtins, var_dict }, [[0]])
       await testEvalWhat("@", { fstack: FS("foo"), builtins, var_dict }, [[6]])
       await testEvalWhat("@", { fstack: FS("hi", "bar"), builtins, var_dict }, [[["hi", 42]]])
+
+      var_dict.BAR = "6"
+      await testEvalWhat("@", { fstack: FS("hi", "BAR"), builtins, var_dict }, [[["hi", 42]]])
     })
     it(">", async function () {
       await testEvalWhat(">", { fstack: FS("a", ["b"], "c", 2) }, [["a", [["b"], "c"]]])
