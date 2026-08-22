@@ -38,7 +38,10 @@ export const is_uncatchable_exception = (e: unknown): e is UncatchableException 
 export const to_string = (x: WhatValue) => typeof x === "string" ? x : formatting(x)
 export function to_number(x: WhatValue): number {
     if (typeof x === "string" || typeof x === "number") return +x
-    if (Array.isArray(x) && x.length === 1) return to_number(x[0])
+    if (Array.isArray(x)) {
+        if (x.length === 0) return 0
+        if (x.length === 1) return to_number(x[0])
+    }
     return NaN
 }
 export const to_bool = (x: WhatValue) => !!x || Number.isNaN(x)

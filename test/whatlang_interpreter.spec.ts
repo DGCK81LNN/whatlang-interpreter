@@ -66,8 +66,8 @@ describe("whatlang_interpreter", function () {
         expect(to_number("foo")).toEqual(NaN)
         expect(to_number(undefined)).toEqual(NaN)
         expect(to_number([-0])).toSatisfy(x => Object.is(x, -0))
-        expect(to_number([])).toEqual(NaN)
-        expect(to_number([])).toEqual(NaN)
+        expect(to_number([])).toEqual(0)
+        expect(to_number([1, 2])).toEqual(NaN)
       })
     })
 
