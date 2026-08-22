@@ -217,6 +217,11 @@ describe("whatlang_interpreter", function () {
         stack.push("baz")
         expect(await exec_what(ctx)).toBeSameAs([["world", 42], "hi"])
         expect(ctx.fstack).toBeSameAs([[[["world", 42], "hi"]]])
+
+        stack.length = 0
+        stack.push(6, "baz")
+        expect(await exec_what(ctx)).toBeSameAs([6, undefined])
+        expect(ctx.fstack).toBeSameAs([[[6, undefined]]])
       })
       it("call user function", async function () {
         const var_dict: WhatContext["var_dict"] = {
