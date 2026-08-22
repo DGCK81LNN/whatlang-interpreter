@@ -21,7 +21,7 @@ describe("whatlang_interpreter", function () {
   describe("utils", function () {
     describe("is_what_value", function () {
       it("test for WhatValue", function () {
-        expect(is_what_value(42)).toEqual(true)
+        expect(is_what_value(42)).toBeSameAs(true)
         expect(is_what_value("foo")).toEqual(true)
         expect(is_what_value(undefined)).toEqual(true)
         expect(is_what_value([42, "foo", undefined, ["a", "b"]])).toEqual(true)
@@ -61,13 +61,14 @@ describe("whatlang_interpreter", function () {
 
     describe("to_number", function () {
       it("convert value to Number", function () {
-        expect(to_number(42)).toEqual(42)
-        expect(to_number("42.")).toEqual(42)
-        expect(to_number("foo")).toEqual(NaN)
-        expect(to_number(undefined)).toEqual(NaN)
-        expect(to_number([-0])).toSatisfy(x => Object.is(x, -0))
-        expect(to_number([])).toEqual(0)
-        expect(to_number([1, 2])).toEqual(NaN)
+        expect(to_number(42)).toBeSameAs(42)
+        expect(to_number("42.")).toBeSameAs(42)
+        expect(to_number("foo")).toBeSameAs(NaN)
+        expect(to_number(" \n")).toBeSameAs(0)
+        expect(to_number(undefined)).toBeSameAs(NaN)
+        expect(to_number([-0])).toBeSameAs(-0)
+        expect(to_number([])).toBeSameAs(0)
+        expect(to_number([1, 2])).toBeSameAs(NaN)
       })
     })
 
@@ -186,7 +187,7 @@ describe("whatlang_interpreter", function () {
           selfReferencing,
         ]
         const { result } = await run_what(repr_formatting(value))
-        expect(result).toEqual(value)
+        expect(result).toBeSameAs(value)
       })
     })
   })
@@ -206,16 +207,16 @@ describe("whatlang_interpreter", function () {
           var_dict: {},
           output: mockFn(),
         }
-        expect(await exec_what(ctx)).toEqual(42)
-        expect(ctx.fstack).toEqual([["hi", 42]])
+        expect(await exec_what(ctx)).toBeSameAs(42)
+        expect(ctx.fstack).toBeSameAs([["hi", 42]])
 
         stack.push("bar")
-        expect(await exec_what(ctx)).toEqual(["world", 42])
-        expect(ctx.fstack).toEqual([["hi", ["world", 42]]])
+        expect(await exec_what(ctx)).toBeSameAs(["world", 42])
+        expect(ctx.fstack).toBeSameAs([["hi", ["world", 42]]])
 
         stack.push("baz")
-        expect(await exec_what(ctx)).toEqual([["world", 42], "hi"])
-        expect(ctx.fstack).toEqual([[[["world", 42], "hi"]]])
+        expect(await exec_what(ctx)).toBeSameAs([["world", 42], "hi"])
+        expect(ctx.fstack).toBeSameAs([[[["world", 42], "hi"]]])
       })
       it("call user function", async function () {
         const var_dict: WhatContext["var_dict"] = {
@@ -229,20 +230,20 @@ describe("whatlang_interpreter", function () {
           var_dict,
           output: mockFn(),
         }
-        expect(await exec_what(ctx)).toEqual(42)
-        expect(ctx.fstack).toEqual([["hi", 42]])
+        expect(await exec_what(ctx)).toBeSameAs(42)
+        expect(ctx.fstack).toBeSameAs([["hi", 42]])
 
         ctx.fstack = [["hi", "bar"]]
-        expect(await exec_what(ctx)).toEqual("world")
-        expect(ctx.fstack).toEqual([["hi"], ["world"]])
+        expect(await exec_what(ctx)).toBeSameAs("world")
+        expect(ctx.fstack).toBeSameAs([["hi"], ["world"]])
 
         ctx.fstack = [["hi", "baz"]]
         await expect(() => exec_what(ctx)).toBeRejectedWith("Cannot evaluate 66, expected String")
-        expect(ctx.fstack).toEqual([["hi"]])
+        expect(ctx.fstack).toBeSameAs([["hi"]])
 
         ctx.fstack = [["hi", "]nope"]]
-        expect(await exec_what(ctx)).toEqual("nope")
-        expect(ctx.fstack).toEqual([[["hi"], "nope"]])
+        expect(await exec_what(ctx)).toBeSameAs("nope")
+        expect(ctx.fstack).toBeSameAs([[["hi"], "nope"]])
       })
     })
 
@@ -276,12 +277,12 @@ describe("whatlang_interpreter", function () {
           var_dict: {},
           output: mockFn(),
         }
-        expect(await eval_what(":{!!}", ctx)).toEqual({
+        expect(await eval_what(":{!!}", ctx)).toBeSameAs({
           result: 1,
           eof: false,
         })
         ctx.fstack = [[0]]
-        expect(await eval_what(":{!!}", ctx)).toEqual({
+        expect(await eval_what(":{!!}", ctx)).toBeSameAs({
           result: 0,
           eof: true,
         })
@@ -303,7 +304,7 @@ describe("whatlang_interpreter", function () {
       ...ctxOverrides,
     }
     const result = await eval_what(code, ctx)
-    if (expectedFstack != null) expect(ctx.fstack).toLooseEqual(expectedFstack)
+    if (expectedFstack != null) expect(ctx.fstack).toBeSameAs(expectedFstack)
     //if (expectedResult != null) expect(result).toHaveSubset(expectedResult)
     return result
   }
@@ -480,7 +481,7 @@ describe("whatlang_interpreter", function () {
     it("=", async function () {
       const var_dict = {}
       await testEvalWhat("=", { fstack: FS("a", "b"), var_dict }, [["a"]])
-      expect(var_dict).toEqual({ b: "a" })
+      expect(var_dict).toBeSameAs({ b: "a" })
       await expect(() => testEvalWhat("=", { fstack: FS("a", 6), var_dict })).toBeRejectedWith(
         "Invalid variable name 6 for assignment, expected String",
       )
