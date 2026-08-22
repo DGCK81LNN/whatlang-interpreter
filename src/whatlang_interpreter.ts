@@ -416,11 +416,11 @@ export async function exec_what(ctx: WhatContext) {
     let func: WhatValue | WhatFunc = stack.pop()
     if (typeof func === "string" && /^[\dA-Z]\w*$|^[^!-~]+$/i.test(func)) {
         if (/^[\dA-Z]*[A-Z][\dA-Z]*$/.test(func)) {
-          const lower = func.toLowerCase()
-          if (Object.hasOwn(ctx.builtins, lower)) func = ctx.builtins[lower]
+            const lower = func.toLowerCase()
+            if (Object.hasOwn(ctx.builtins, lower)) func = ctx.builtins[lower]
         } else {
-          if (Object.hasOwn(ctx.var_dict, func)) func = ctx.var_dict[func]
-          else if (Object.hasOwn(ctx.builtins, func)) func = ctx.builtins[func]
+            if (Object.hasOwn(ctx.var_dict, func)) func = ctx.var_dict[func]
+            else if (Object.hasOwn(ctx.builtins, func)) func = ctx.builtins[func]
         }
     }
     if (typeof func === "function") {
