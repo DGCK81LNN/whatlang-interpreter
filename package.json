@@ -1,6 +1,6 @@
 {
   "name": "whatlang-interpreter",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-rc.1",
   "description": "Interpreter for WhatLang 2024, a stack-based esolang",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
