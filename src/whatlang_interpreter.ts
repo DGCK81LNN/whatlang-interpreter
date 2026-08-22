@@ -705,14 +705,14 @@ export async function eval_what(code: string, ctx: WhatContext): Promise<EvalWha
                 )
 
             if (Array.isArray(index) && index.length >= 2) {
-                if (!Array.isArray(value))
-                    throw TypeError(FE`Cannot set range in Array to ${value}, expected Array`)
                 let [from, to] = index.slice(0, 2).map(x => {
                     if (x == undefined || Number.isNaN(x)) return Infinity
                     return to_int(x, NaN)
                 })
                 if (isNaN(from) || isNaN(to))
                     throw TypeError(FE`Invalid range ${index} for replacing slice in Array`)
+                if (!Array.isArray(value))
+                    throw TypeError(FE`Cannot replace range in Array with ${value}, expected Array`)
                 if (from < 0) from += array.length
                 if (to < 0) to += array.length
                 array.splice(from, to - from, ...value)

@@ -638,7 +638,7 @@ describe("whatlang_interpreter", function () {
       ).toBeRejectedWith('Invalid range ["1", "foo"] for replacing slice in Array')
       await expect(() =>
         testEvalWhat(";", { fstack: FS([11, 12, 13], [1, 2], 42) }),
-      ).toBeRejectedWith("Cannot set range in Array to 42, expected Array")
+      ).toBeRejectedWith("Cannot replace range in Array with 42, expected Array")
     })
     it("$", async function () {
       await testEvalWhat("$", { fstack: FS([11, 12, 13], 2) }, [[[11, 12]]])
